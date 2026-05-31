@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Checkin extends Model
 {
-    protected $fillable = ['guest_id', 'checkin_at', 'checkout_at', 'ip_address'];
+    protected $fillable = ['guest_id', 'station_id', 'checkin_at', 'checkout_at', 'ip_address'];
 
     protected $casts = [
         'checkin_at' => 'datetime',
@@ -17,5 +17,10 @@ class Checkin extends Model
     public function guest(): BelongsTo
     {
         return $this->belongsTo(Guest::class);
+    }
+
+    public function station(): BelongsTo
+    {
+        return $this->belongsTo(Station::class);
     }
 }

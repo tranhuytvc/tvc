@@ -34,11 +34,20 @@
 <div class="container">
     <div class="filter-bar">
         <h2 style="font-size:1.3rem; font-weight:700;"><i class="fas fa-chart-bar" style="color:#667eea;"></i> Thống kê Check-in</h2>
-        <form method="GET" action="{{ route('stats') }}" style="display:flex; gap:10px; align-items:center;">
-            <input type="date" name="date" value="{{ $date }}" onchange="this.form.submit()">
+        <form method="GET" action="{{ route('stats') }}" style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
+            <input type="date" name="date" value="{{ $date }}">
+            <select name="station_id" class="form-control" style="width:auto;">
+                <option value="">Tất cả stations</option>
+                @foreach($stations as $st)
+                    <option value="{{ $st->id }}" {{ $stationId == $st->id ? 'selected' : '' }}>{{ $st->name }}</option>
+                @endforeach
+            </select>
             <button type="submit" class="btn btn-primary btn-sm"><i class="fas fa-filter"></i> Lọc</button>
         </form>
-        <span style="color:#888; font-size:0.85rem;">Ngày: <strong>{{ \Carbon\Carbon::parse($date)->format('d/m/Y') }}</strong></span>
+        <span style="color:#888; font-size:0.85rem;">
+            Ngày: <strong>{{ \Carbon\Carbon::parse($date)->format('d/m/Y') }}</strong>
+            @if($stationId) &bull; Station: <strong>{{ $stations->firstWhere('id', $stationId)?->name }}</strong> @endif
+        </span>
     </div>
 
     {{-- Stats Cards --}}
@@ -138,7 +147,14 @@
                 <div class="timeline-item">
                     <div class="timeline-time">{{ $checkin->checkin_at->format('H:i:s') }}</div>
                     <div class="timeline-content">
-                        <div class="timeline-name">{{ $checkin->guest->name ?? '—' }}</div>
+                        <div class="timeline-name">
+                            {{ $checkin->guest->name ?? '—' }}
+                            @if($checkin->station)
+                                <span class="badge" style="background:#f0f2ff;color:#667eea;font-size:0.72rem;margin-left:6px;">
+                                    <i class="fas fa-door-open"></i> {{ $checkin->station->name }}
+                                </span>
+                            @endif
+                        </div>
                         <div class="timeline-action">
                             <span class="badge badge-success">Check-in</span>
                             @if($checkin->checkout_at)

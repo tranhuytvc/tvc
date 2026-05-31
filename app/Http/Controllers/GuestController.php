@@ -31,18 +31,22 @@ class GuestController extends Controller
             'media' => 'required|file|max:102400',
         ]);
 
-        $token = Str::random(16);
         $mediaFile = $request->file('media');
         $ext = $mediaFile->getClientOriginalExtension();
-        $mediaPath = $mediaFile->storeAs('media', $token . '.' . $ext, 'public');
+        $tempId = 'tmp_' . Str::random(8);
+        $mediaPath = $mediaFile->storeAs('media', $tempId . '.' . $ext, 'public');
 
         $guest = Guest::create([
             'name' => $request->name,
             'email' => $request->email,
             'media_type' => $request->media_type,
             'media_path' => $mediaPath,
-            'qr_token' => $token,
         ]);
+
+        // Rename media file to use stable guest ID
+        $newMediaPath = 'media/guest_' . $guest->id . '.' . $ext;
+        Storage::disk('public')->move($mediaPath, $newMediaPath);
+        $guest->update(['media_path' => $newMediaPath]);
 
         $this->generateQrCode($guest);
 
@@ -76,11 +80,15 @@ class GuestController extends Controller
             }
             $mediaFile = $request->file('media');
             $ext = $mediaFile->getClientOriginalExtension();
-            $data['media_path'] = $mediaFile->storeAs('media', $guest->qr_token . '.' . $ext, 'public');
+            $data['media_path'] = $mediaFile->storeAs('media', 'guest_' . $guest->id . '.' . $ext, 'public');
         }
 
         $guest->update($data);
-        $this->generateQrCode($guest);
+        // QR URL is based on ID so doesn't need regeneration on data change,
+        // but regenerate if file was deleted or missing
+        if (!$guest->qr_code_path || !Storage::disk('public')->exists($guest->qr_code_path)) {
+            $this->generateQrCode($guest);
+        }
 
         return redirect()->route('cms.index')->with('success', 'Cập nhật thành công!');
     }
@@ -100,7 +108,7 @@ class GuestController extends Controller
     public function downloadQr(Guest $guest)
     {
         $path = storage_path('app/public/' . $guest->qr_code_path);
-        return response()->download($path, Str::slug($guest->name) . '-qr.png');
+        return response()->download($path, 'guest-' . $guest->id . '-' . Str::slug($guest->name) . '-qr.png');
     }
 
     public function downloadAllQr()
@@ -114,7 +122,7 @@ class GuestController extends Controller
         foreach ($guests as $guest) {
             $filePath = storage_path('app/public/' . $guest->qr_code_path);
             if (file_exists($filePath)) {
-                $zip->addFile($filePath, Str::slug($guest->name) . '-' . $guest->qr_token . '.png');
+                $zip->addFile($filePath, 'guest-' . $guest->id . '-' . Str::slug($guest->name) . '.png');
             }
         }
         $zip->close();
@@ -122,14 +130,21 @@ class GuestController extends Controller
         return response()->download($zipPath, 'qrcodes.zip')->deleteFileAfterSend();
     }
 
+    public function regenerateQr(Guest $guest)
+    {
+        $this->generateQrCode($guest);
+        return back()->with('success', 'Đã tạo lại QR code!');
+    }
+
     private function generateQrCode(Guest $guest)
     {
-        $url = route('welcome', ['token' => $guest->qr_token]);
+        // URL uses guest ID - stable, never changes even if data updates
+        $url = route('welcome', ['guest' => $guest->id]);
         $dir = storage_path('app/public/qrcodes');
         if (!is_dir($dir)) {
             mkdir($dir, 0755, true);
         }
-        $filename = 'qrcodes/' . $guest->qr_token . '.png';
+        $filename = 'qrcodes/guest_' . $guest->id . '.png';
         $filepath = storage_path('app/public/' . $filename);
 
         QrCode::format('png')

@@ -1,142 +1,198 @@
+@php
+    $bgType = $settings['bg_type'] ?? 'gradient';
+    $hasBgMedia = in_array($bgType, ['image', 'video']) && !empty($settings[$bgType === 'image' ? 'bg_image' : 'bg_video']);
+    $bgStyle = '';
+    if (!$hasBgMedia) {
+        if ($bgType === 'gradient') {
+            $bgStyle = 'background: linear-gradient(135deg, ' . ($settings['bg_color_from'] ?? '#0f0c29') . ', ' . ($settings['bg_color_to'] ?? '#302b63') . ');';
+        } else {
+            $bgStyle = 'background: ' . ($settings['bg_color_from'] ?? '#0f0c29') . ';';
+        }
+    }
+    $accentColor = $settings['accent_color'] ?? '#667eea';
+    $fontColor = $settings['font_color'] ?? '#ffffff';
+    $orientation = $settings['display_orientation'] ?? 'landscape';
+    $showClock = $settings['show_clock'] ?? true;
+    $idleText = $settings['idle_text'] ?? 'Quét mã QR để check-in';
+    $apiUrl = $station ? url('/api/station/' . $station->display_slug . '/latest-checkin') : url('/api/latest-checkin');
+@endphp
 <!DOCTYPE html>
 <html lang="vi">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Màn hình chào mừng</title>
+    <title>{{ $settings['event_name'] ?? 'Màn hình chào mừng' }}{{ $station ? ' - ' . $station->name : '' }}</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
-            background: #000; color: white; overflow: hidden;
+            background: #000; color: {{ $fontColor }}; overflow: hidden;
             font-family: 'Segoe UI', Tahoma, sans-serif;
-            width: 100vw; height: 100vh; display: flex;
-            flex-direction: column; align-items: center; justify-content: center;
+            width: 100vw; height: 100vh; display: flex; flex-direction: column;
         }
+        .bg-media { position: fixed; inset: 0; z-index: 0; }
+        .bg-media img, .bg-media video { width: 100%; height: 100%; object-fit: cover; }
+        .bg-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 1; }
 
         .orientation-toggle {
-            position: fixed; top: 16px; right: 16px; z-index: 100;
-            display: flex; gap: 8px;
+            position: fixed; top: 14px; right: 14px; z-index: 100;
+            display: flex; gap: 6px;
         }
         .toggle-btn {
-            padding: 8px 14px; border-radius: 8px; border: none;
-            background: rgba(255,255,255,0.15); color: white; cursor: pointer;
-            font-size: 0.85rem; transition: all 0.2s; display: flex; align-items: center; gap: 6px;
-            backdrop-filter: blur(10px);
+            padding: 6px 12px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.2);
+            background: rgba(0,0,0,0.4); color: {{ $fontColor }}; cursor: pointer;
+            font-size: 0.8rem; transition: all 0.2s; display: flex; align-items: center; gap: 5px;
+            backdrop-filter: blur(10px); text-decoration: none;
         }
-        .toggle-btn:hover, .toggle-btn.active { background: rgba(102,126,234,0.7); }
+        .toggle-btn:hover, .toggle-btn.active { background: {{ $accentColor }}99; border-color: {{ $accentColor }}; }
 
-        .display-container {
-            width: 100vw; height: 100vh; position: relative;
-            display: flex; align-items: center; justify-content: center;
-        }
-
-        /* Landscape mode */
-        .landscape .display-inner {
-            display: grid; grid-template-columns: 1fr 1fr;
-            width: 100%; height: 100%; gap: 0;
-        }
-        .landscape .media-side {
-            height: 100vh; overflow: hidden; background: #111;
-        }
-        .landscape .media-side img,
-        .landscape .media-side video {
-            width: 100%; height: 100%; object-fit: cover;
-        }
-        .landscape .info-side {
-            display: flex; flex-direction: column; align-items: center;
-            justify-content: center; padding: 40px;
-            background: linear-gradient(135deg, #0f0c29, #302b63);
-        }
-
-        /* Portrait mode */
-        .portrait .display-inner {
-            display: flex; flex-direction: column;
-            width: 100%; height: 100%;
-        }
-        .portrait .media-side {
-            flex: 1; overflow: hidden; background: #111;
-        }
-        .portrait .media-side img,
-        .portrait .media-side video {
-            width: 100%; height: 100%; object-fit: cover;
-        }
-        .portrait .info-side {
-            padding: 30px 20px; text-align: center;
-            background: linear-gradient(135deg, #0f0c29, #302b63);
-            flex-shrink: 0;
-        }
-
-        .guest-name {
-            font-size: clamp(2rem, 5vw, 4rem); font-weight: 800;
-            background: linear-gradient(135deg, #fff, #c9d6ff);
-            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-            margin-bottom: 12px; line-height: 1.1;
-        }
-        .welcome-msg { font-size: clamp(1rem, 2vw, 1.3rem); color: rgba(255,255,255,0.7); margin-bottom: 16px; }
-        .checkin-time { font-size: 0.9rem; color: rgba(255,255,255,0.5); }
-        .event-tag {
-            display: inline-block; padding: 6px 16px; border-radius: 20px;
-            background: rgba(102,126,234,0.3); border: 1px solid #667eea;
-            color: #b3c0ff; font-size: 0.85rem; font-weight: 600; margin-bottom: 16px;
-        }
+        .display-container { width: 100vw; height: 100vh; position: relative; z-index: 2; }
 
         /* Idle screen */
         .idle-screen {
             width: 100%; height: 100%; display: flex; flex-direction: column;
-            align-items: center; justify-content: center;
-            background: linear-gradient(135deg, #0f0c29, #302b63, #24243e);
-            text-align: center;
+            align-items: center; justify-content: center; text-align: center;
+            {!! $bgStyle !!}
+            position: relative; z-index: 2;
         }
-        .idle-qr-icon { font-size: 8rem; margin-bottom: 20px; opacity: 0.6; animation: pulse 2s infinite; }
-        .idle-title { font-size: clamp(1.5rem, 4vw, 2.5rem); font-weight: 700; margin-bottom: 10px; }
-        .idle-sub { color: rgba(255,255,255,0.5); font-size: 1rem; }
-        .clock { font-size: clamp(2rem, 6vw, 5rem); font-weight: 100; margin-bottom: 8px; letter-spacing: 4px; }
-        .date-display { color: rgba(255,255,255,0.5); font-size: 1rem; }
+        .idle-clock { font-size: clamp(3rem, 8vw, 7rem); font-weight: 200; letter-spacing: 4px; margin-bottom: 6px; }
+        .idle-date { font-size: 1rem; opacity: 0.5; margin-bottom: 40px; }
+        .idle-logo { margin-bottom: 20px; }
+        .idle-logo img { max-height: 70px; max-width: 250px; object-fit: contain; opacity: 0.8; }
+        .idle-icon { font-size: clamp(4rem, 8vw, 7rem); opacity: 0.35; animation: pulse 2.5s infinite; margin-bottom: 16px; }
+        .idle-title { font-size: clamp(1.2rem, 3vw, 2rem); font-weight: 600; opacity: 0.7; margin-bottom: 8px; }
+        .idle-sub { font-size: 1rem; opacity: 0.4; }
+        @if($station)
+        .station-id {
+            position: fixed; bottom: 16px; right: 16px; z-index: 100;
+            font-size: 0.75rem; opacity: 0.35; padding: 4px 10px;
+            background: rgba(0,0,0,0.4); border-radius: 6px;
+        }
+        @endif
 
-        @keyframes pulse { 0%,100% { opacity: 0.6; } 50% { opacity: 0.3; } }
-        @keyframes slideIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
-        .animate-in { animation: slideIn 0.5s ease; }
+        /* Landscape mode */
+        .landscape .display-inner {
+            display: grid; grid-template-columns: 1fr 1fr;
+            width: 100%; height: 100%;
+        }
+        /* Portrait mode */
+        .portrait .display-inner {
+            display: flex; flex-direction: column; width: 100%; height: 100%;
+        }
+        .media-side { overflow: hidden; background: #000; }
+        .landscape .media-side { height: 100vh; }
+        .portrait .media-side { flex: 1; }
+        .media-side img, .media-side video { width: 100%; height: 100%; object-fit: cover; }
+
+        .info-side {
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            padding: 40px; {!! $bgStyle !!} text-align: center;
+        }
+        .portrait .info-side { padding: 28px 20px; flex-shrink: 0; }
+
+        .display-logo img { max-height: 50px; max-width: 180px; object-fit: contain; margin-bottom: 16px; }
+        .badge-action {
+            display: inline-flex; align-items: center; gap: 6px;
+            padding: 6px 16px; border-radius: 20px; font-size: 0.8rem; font-weight: 700;
+            margin-bottom: 14px; border: 2px solid;
+        }
+        .badge-checkin { background: rgba(40,167,69,0.2); border-color: #28a745; color: #7feba1; }
+        .badge-checkout { background: rgba(255,193,7,0.2); border-color: #ffc107; color: #ffe599; }
+        .display-name {
+            font-size: clamp(1.8rem, 4vw, 3.5rem); font-weight: 800; line-height: 1.1;
+            margin-bottom: 10px; color: {{ $accentColor }};
+        }
+        .display-title { font-size: clamp(0.9rem, 1.8vw, 1.2rem); opacity: 0.75; margin-bottom: 8px; }
+        .display-msg { font-size: clamp(0.8rem, 1.4vw, 1rem); opacity: 0.55; }
+        .display-time { font-size: 0.85rem; opacity: 0.4; margin-top: 12px; }
+
+        @keyframes pulse { 0%,100% { opacity: 0.35; } 50% { opacity: 0.15; } }
+        @keyframes slideIn { from { opacity: 0; transform: scale(0.96); } to { opacity: 1; transform: scale(1); } }
+        .animate-in { animation: slideIn 0.4s ease; }
     </style>
 </head>
 <body>
+    {{-- Background media (only for idle, if gradient is replaced) --}}
+    @if($hasBgMedia)
+    <div class="bg-media">
+        @if($bgType === 'image')
+            <img src="{{ asset('storage/' . $settings['bg_image']) }}" alt="">
+        @else
+            <video src="{{ asset('storage/' . $settings['bg_video']) }}" autoplay muted loop playsinline></video>
+        @endif
+    </div>
+    <div class="bg-overlay"></div>
+    @endif
+
     <div class="orientation-toggle">
-        <button class="toggle-btn active" id="btnLandscape" onclick="setOrientation('landscape')">
+        <button class="toggle-btn {{ $orientation === 'landscape' ? 'active' : '' }}" id="btnLandscape" onclick="setOrientation('landscape')">
             <i class="fas fa-laptop"></i> Ngang
         </button>
-        <button class="toggle-btn" id="btnPortrait" onclick="setOrientation('portrait')">
+        <button class="toggle-btn {{ $orientation === 'portrait' ? 'active' : '' }}" id="btnPortrait" onclick="setOrientation('portrait')">
             <i class="fas fa-mobile-alt"></i> Dọc
         </button>
-        <a href="{{ route('scan') }}" class="toggle-btn">
-            <i class="fas fa-qrcode"></i>
+        @if($station)
+        <a href="{{ url('/scan/' . $station->scan_slug) }}" class="toggle-btn" target="_blank">
+            <i class="fas fa-camera"></i>
         </a>
+        @endif
+        <a href="{{ route('cms.stations.index') }}" class="toggle-btn"><i class="fas fa-cog"></i></a>
     </div>
 
-    <div class="display-container landscape" id="displayContainer">
+    <div class="display-container {{ $orientation }}" id="displayContainer">
+        {{-- Idle Screen --}}
         <div class="idle-screen" id="idleScreen">
-            <div class="clock" id="clock">00:00:00</div>
-            <div class="date-display" id="dateDisplay"></div>
-            <div style="margin: 30px 0;">
-                <div class="idle-qr-icon">📱</div>
-                <div class="idle-title">Hệ thống Chào mừng</div>
-                <div class="idle-sub">Quét mã QR để check-in</div>
+            @if($hasBgMedia)
+            <div style="position:absolute;inset:0;z-index:-1;"></div>
+            @endif
+
+            @if(!empty($settings['logo_path']))
+            <div class="idle-logo"><img src="{{ asset('storage/' . $settings['logo_path']) }}" alt="Logo"></div>
+            @endif
+
+            @if($showClock)
+            <div class="idle-clock" id="clock">00:00:00</div>
+            <div class="idle-date" id="dateDisplay"></div>
+            @endif
+
+            <div class="idle-icon">📱</div>
+            <div class="idle-title">{{ $settings['event_name'] ?? '' }}</div>
+            <div class="idle-sub">{{ $idleText }}</div>
+        </div>
+
+        {{-- Active guest display --}}
+        <div class="display-inner {{ $orientation }}" id="displayInner" style="display:none;">
+            <div class="media-side" id="mediaSide"></div>
+            <div class="info-side" id="infoSide">
+                @if(!empty($settings['logo_path']))
+                <div class="display-logo"><img src="{{ asset('storage/' . $settings['logo_path']) }}" alt="Logo"></div>
+                @endif
             </div>
         </div>
-
-        <div class="display-inner" id="displayInner" style="display:none;">
-            <div class="media-side" id="mediaSide"></div>
-            <div class="info-side" id="infoSide"></div>
-        </div>
     </div>
 
+    @if($station)
+    <div class="station-id"><i class="fas fa-door-open"></i> {{ $station->name }}</div>
+    @endif
+
     <script>
-        let orientation = 'landscape';
+        let orientation = '{{ $orientation }}';
         let idleTimer = null;
+        const accentColor = '{{ $accentColor }}';
+        const fontColor = '{{ $fontColor }}';
+        const bgStyle = @json($bgStyle);
+        const logoHtml = @json(!empty($settings['logo_path']) ? '<div class="display-logo"><img src="' . asset('storage/' . $settings['logo_path']) . '" alt="Logo"></div>' : '');
+        const titleCheckin = @json($settings['welcome_title_checkin'] ?? 'Xin chào,');
+        const titleCheckout = @json($settings['welcome_title_checkout'] ?? 'Tạm biệt,');
+        const msgCheckin = @json($settings['welcome_msg_checkin'] ?? 'Chào mừng bạn đã đến!');
+        const msgCheckout = @json($settings['welcome_msg_checkout'] ?? 'Cảm ơn bạn đã tham dự!');
+        const apiUrl = @json($apiUrl);
 
         function setOrientation(mode) {
             orientation = mode;
             const container = document.getElementById('displayContainer');
             container.className = 'display-container ' + mode;
+            document.getElementById('displayInner').className = 'display-inner ' + mode;
             document.getElementById('btnLandscape').className = 'toggle-btn ' + (mode === 'landscape' ? 'active' : '');
             document.getElementById('btnPortrait').className = 'toggle-btn ' + (mode === 'portrait' ? 'active' : '');
         }
@@ -145,32 +201,36 @@
             document.getElementById('idleScreen').style.display = 'none';
             const inner = document.getElementById('displayInner');
             inner.style.display = orientation === 'landscape' ? 'grid' : 'flex';
-            inner.className = 'display-inner animate-in';
+            inner.className = 'display-inner ' + orientation + ' animate-in';
 
             const mediaSide = document.getElementById('mediaSide');
             const infoSide = document.getElementById('infoSide');
 
             if (guest.media_path) {
-                if (guest.media_type === 'image') {
-                    mediaSide.innerHTML = `<img src="/storage/${guest.media_path}" alt="${guest.name}">`;
-                } else {
-                    mediaSide.innerHTML = `<video src="/storage/${guest.media_path}" autoplay muted loop playsinline></video>`;
-                }
+                const tag = guest.media_type === 'image' ? 'img' : 'video';
+                const attrs = guest.media_type === 'video' ? ' autoplay muted loop playsinline' : '';
+                mediaSide.innerHTML = `<${tag} src="/storage/${guest.media_path}"${attrs}></${tag}>`;
             } else {
-                mediaSide.innerHTML = `<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:6rem;">👤</div>`;
+                mediaSide.style.background = bgStyle.replace('background:', '').trim() || '#000';
+                mediaSide.innerHTML = `<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:8rem;opacity:0.4;">👤</div>`;
             }
 
-            const action = guest.action === 'checkin' ? 'CHECK-IN' : 'CHECK-OUT';
-            const msg = guest.action === 'checkin' ? 'Chào mừng bạn đã đến!' : 'Tạm biệt! Hẹn gặp lại!';
+            const isCheckin = guest.action === 'checkin';
+            infoSide.style.cssText = bgStyle + ` display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px;text-align:center;color:${fontColor};`;
             infoSide.innerHTML = `
-                <div class="event-tag"><i class="fas fa-${guest.action === 'checkin' ? 'sign-in-alt' : 'sign-out-alt'}"></i> ${action}</div>
-                <div class="guest-name">${guest.name}</div>
-                <div class="welcome-msg">${msg}</div>
-                <div class="checkin-time"><i class="fas fa-clock"></i> ${new Date().toLocaleTimeString('vi-VN')}</div>
+                ${logoHtml}
+                <div class="badge-action ${isCheckin ? 'badge-checkin' : 'badge-checkout'}">
+                    <i class="fas fa-${isCheckin ? 'sign-in-alt' : 'sign-out-alt'}"></i>
+                    ${isCheckin ? 'CHECK-IN' : 'CHECK-OUT'}
+                </div>
+                <div class="display-name" style="color:${accentColor}">${guest.name}</div>
+                <div class="display-title">${isCheckin ? titleCheckin : titleCheckout} ${guest.name}</div>
+                <div class="display-msg">${isCheckin ? msgCheckin : msgCheckout}</div>
+                <div class="display-time"><i class="fas fa-clock"></i> ${new Date().toLocaleTimeString('vi-VN')}</div>
             `;
 
             clearTimeout(idleTimer);
-            idleTimer = setTimeout(showIdle, 8000);
+            idleTimer = setTimeout(showIdle, {{ $settings['countdown_seconds'] ?? 10 }} * 1000 + 2000);
         }
 
         function showIdle() {
@@ -178,20 +238,22 @@
             document.getElementById('displayInner').style.display = 'none';
         }
 
-        // Clock
+        @if($showClock)
         function updateClock() {
             const now = new Date();
-            document.getElementById('clock').textContent = now.toLocaleTimeString('vi-VN');
-            document.getElementById('dateDisplay').textContent = now.toLocaleDateString('vi-VN', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+            const el = document.getElementById('clock');
+            const de = document.getElementById('dateDisplay');
+            if (el) el.textContent = now.toLocaleTimeString('vi-VN');
+            if (de) de.textContent = now.toLocaleDateString('vi-VN', { weekday:'long', year:'numeric', month:'long', day:'numeric' });
         }
         setInterval(updateClock, 1000);
         updateClock();
+        @endif
 
-        // Listen for check-in events via polling
         let lastCheckinId = 0;
         async function pollCheckins() {
             try {
-                const res = await fetch('/api/latest-checkin?after=' + lastCheckinId);
+                const res = await fetch(apiUrl + '?after=' + lastCheckinId);
                 const data = await res.json();
                 if (data && data.id && data.id !== lastCheckinId) {
                     lastCheckinId = data.id;

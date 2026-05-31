@@ -119,9 +119,10 @@
             <i class="fas fa-qrcode"></i> QR Welcome
         </a>
         <ul class="navbar-nav">
-            <li><a href="{{ route('scan') }}" class="{{ request()->routeIs('scan') ? 'active' : '' }}"><i class="fas fa-camera"></i> Quét QR</a></li>
-            <li><a href="{{ route('display') }}" class="{{ request()->routeIs('display') ? 'active' : '' }}"><i class="fas fa-tv"></i> Màn hình</a></li>
-            <li><a href="{{ route('cms.index') }}" class="{{ request()->routeIs('cms.*') ? 'active' : '' }}"><i class="fas fa-cog"></i> Quản lý</a></li>
+            <li><a href="{{ route('scan') }}" class="{{ request()->routeIs('scan') && !request()->route('slug') ? 'active' : '' }}"><i class="fas fa-camera"></i> Quét QR</a></li>
+            <li><a href="{{ route('display') }}" class="{{ request()->routeIs('display') && !request()->route('slug') ? 'active' : '' }}"><i class="fas fa-tv"></i> Màn hình</a></li>
+            <li><a href="{{ route('cms.index') }}" class="{{ request()->routeIs('cms.index') || request()->routeIs('cms.create') || request()->routeIs('cms.edit') ? 'active' : '' }}"><i class="fas fa-users"></i> Khách mời</a></li>
+            <li><a href="{{ route('cms.stations.index') }}" class="{{ request()->routeIs('cms.stations.*') ? 'active' : '' }}"><i class="fas fa-door-open"></i> Stations</a></li>
             <li><a href="{{ route('stats') }}" class="{{ request()->routeIs('stats') ? 'active' : '' }}"><i class="fas fa-chart-bar"></i> Thống kê</a></li>
         </ul>
     </nav>

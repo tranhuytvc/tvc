@@ -3,14 +3,21 @@
 namespace App\Http\Controllers;
 
 use App\Models\Guest;
+use App\Models\Station;
 use App\Models\Checkin;
 use Illuminate\Http\Request;
 
 class WelcomeController extends Controller
 {
-    public function show(string $token)
+    // Show welcome page after QR scan - optionally associated with a station
+    public function show(Guest $guest, Request $request)
     {
-        $guest = Guest::where('qr_token', $token)->where('is_active', true)->firstOrFail();
+        if (!$guest->is_active) {
+            abort(404);
+        }
+
+        $stationSlug = $request->get('station');
+        $station = $stationSlug ? Station::where('scan_slug', $stationSlug)->where('is_active', true)->first() : null;
 
         $latest = $guest->latestCheckin;
         if ($latest && $latest->checkin_at && !$latest->checkout_at) {
@@ -19,22 +26,37 @@ class WelcomeController extends Controller
         } else {
             Checkin::create([
                 'guest_id' => $guest->id,
+                'station_id' => $station?->id,
                 'checkin_at' => now(),
                 'ip_address' => request()->ip(),
             ]);
             $action = 'checkin';
         }
 
-        return view('welcome', compact('guest', 'action'));
+        $settings = $station ? $station->mergedSettings() : Station::defaultSettings();
+
+        return view('welcome', compact('guest', 'action', 'station', 'settings'));
     }
 
-    public function scan()
+    // Scan page - with or without station
+    public function scan(?string $slug = null)
     {
-        return view('scan');
+        $station = null;
+        if ($slug) {
+            $station = Station::where('scan_slug', $slug)->where('is_active', true)->firstOrFail();
+        }
+        $settings = $station ? $station->mergedSettings() : Station::defaultSettings();
+        return view('scan', compact('station', 'settings'));
     }
 
-    public function display()
+    // Display page - with or without station
+    public function display(?string $slug = null)
     {
-        return view('display');
+        $station = null;
+        if ($slug) {
+            $station = Station::where('display_slug', $slug)->where('is_active', true)->firstOrFail();
+        }
+        $settings = $station ? $station->mergedSettings() : Station::defaultSettings();
+        return view('display', compact('station', 'settings'));
     }
 }
