@@ -6,14 +6,14 @@ use App\Http\Controllers\WelcomeController;
 use App\Http\Controllers\StatsController;
 use Illuminate\Support\Facades\Route;
 
-// QR welcome result (uses guest ID - stable)
-Route::get('/welcome/{guest}', [WelcomeController::class, 'show'])->name('welcome');
+// QR welcome - routes by UUID (non-guessable, stable)
+Route::get('/welcome/{qrCode}', [WelcomeController::class, 'show'])->name('welcome');
 
-// Default scan/display (no station)
+// Scan/display - default (no station)
 Route::get('/scan', [WelcomeController::class, 'scan'])->name('scan');
 Route::get('/display', [WelcomeController::class, 'display'])->name('display');
 
-// Station-specific scan/display pages
+// Scan/display - station-specific
 Route::get('/scan/{slug}', [WelcomeController::class, 'scan'])->name('scan.station');
 Route::get('/display/{slug}', [WelcomeController::class, 'display'])->name('display.station');
 
@@ -26,12 +26,13 @@ Route::prefix('cms')->name('cms.')->group(function () {
     Route::get('/', [GuestController::class, 'index'])->name('index');
     Route::get('/create', [GuestController::class, 'create'])->name('create');
     Route::post('/', [GuestController::class, 'store'])->name('store');
+    Route::get('/download-all-qr', [GuestController::class, 'downloadAllQr'])->name('download-all-qr');
     Route::get('/{guest}/edit', [GuestController::class, 'edit'])->name('edit');
     Route::put('/{guest}', [GuestController::class, 'update'])->name('update');
     Route::delete('/{guest}', [GuestController::class, 'destroy'])->name('destroy');
-    Route::get('/download-all-qr', [GuestController::class, 'downloadAllQr'])->name('download-all-qr');
     Route::get('/{guest}/download-qr', [GuestController::class, 'downloadQr'])->name('download-qr');
-    Route::post('/{guest}/regenerate-qr', [GuestController::class, 'regenerateQr'])->name('regenerate-qr');
+    Route::post('/{guest}/toggle-lock', [GuestController::class, 'toggleLock'])->name('toggle-lock');
+    Route::post('/{guest}/reset-scans', [GuestController::class, 'resetScans'])->name('reset-scans');
 
     // Stations
     Route::prefix('stations')->name('stations.')->group(function () {

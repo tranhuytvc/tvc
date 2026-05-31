@@ -11,9 +11,25 @@ use ZipArchive;
 
 class GuestController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        $guests = Guest::withCount('checkins')->latest()->paginate(20);
+        $query = Guest::withCount('checkins');
+
+        if ($search = $request->get('search')) {
+            $query->where('name', 'like', "%$search%")
+                  ->orWhere('email', 'like', "%$search%");
+        }
+
+        if ($status = $request->get('status')) {
+            match ($status) {
+                'locked'    => $query->where('is_locked', true),
+                'active'    => $query->where('is_locked', false)->where('is_active', true),
+                'inactive'  => $query->where('is_active', false),
+                default     => null,
+            };
+        }
+
+        $guests = $query->latest()->paginate(20)->withQueryString();
         return view('cms.index', compact('guests'));
     }
 
@@ -25,25 +41,29 @@ class GuestController extends Controller
     public function store(Request $request)
     {
         $request->validate([
-            'name' => 'required|string|max:255',
-            'email' => 'nullable|email|max:255',
-            'media_type' => 'required|in:image,video',
-            'media' => 'required|file|max:102400',
+            'name'           => 'required|string|max:255',
+            'email'          => 'nullable|email|max:255',
+            'media_type'     => 'required|in:image,video',
+            'media'          => 'required|file|max:102400',
+            'scan_mode'      => 'required|in:unlimited,one_time,checkin_checkout,max_scans',
+            'max_scan_count' => 'required_if:scan_mode,max_scans|integer|min:1|max:999',
         ]);
 
         $mediaFile = $request->file('media');
         $ext = $mediaFile->getClientOriginalExtension();
-        $tempId = 'tmp_' . Str::random(8);
-        $mediaPath = $mediaFile->storeAs('media', $tempId . '.' . $ext, 'public');
+        $tmpId = 'tmp_' . Str::random(8);
+        $mediaPath = $mediaFile->storeAs('media', $tmpId . '.' . $ext, 'public');
 
         $guest = Guest::create([
-            'name' => $request->name,
-            'email' => $request->email,
-            'media_type' => $request->media_type,
-            'media_path' => $mediaPath,
+            'name'           => $request->name,
+            'email'          => $request->email,
+            'media_type'     => $request->media_type,
+            'media_path'     => $mediaPath,
+            'scan_mode'      => $request->scan_mode,
+            'max_scan_count' => $request->input('max_scan_count', 2),
         ]);
 
-        // Rename media file to use stable guest ID
+        // Rename to stable guest-ID-based filename
         $newMediaPath = 'media/guest_' . $guest->id . '.' . $ext;
         Storage::disk('public')->move($mediaPath, $newMediaPath);
         $guest->update(['media_path' => $newMediaPath]);
@@ -61,17 +81,21 @@ class GuestController extends Controller
     public function update(Request $request, Guest $guest)
     {
         $request->validate([
-            'name' => 'required|string|max:255',
-            'email' => 'nullable|email|max:255',
-            'media_type' => 'required|in:image,video',
-            'media' => 'nullable|file|max:102400',
+            'name'           => 'required|string|max:255',
+            'email'          => 'nullable|email|max:255',
+            'media_type'     => 'required|in:image,video',
+            'media'          => 'nullable|file|max:102400',
+            'scan_mode'      => 'required|in:unlimited,one_time,checkin_checkout,max_scans',
+            'max_scan_count' => 'required_if:scan_mode,max_scans|integer|min:1|max:999',
         ]);
 
         $data = [
-            'name' => $request->name,
-            'email' => $request->email,
-            'media_type' => $request->media_type,
-            'is_active' => $request->has('is_active'),
+            'name'           => $request->name,
+            'email'          => $request->email,
+            'media_type'     => $request->media_type,
+            'is_active'      => $request->has('is_active'),
+            'scan_mode'      => $request->scan_mode,
+            'max_scan_count' => $request->input('max_scan_count', 2),
         ];
 
         if ($request->hasFile('media')) {
@@ -84,8 +108,8 @@ class GuestController extends Controller
         }
 
         $guest->update($data);
-        // QR URL is based on ID so doesn't need regeneration on data change,
-        // but regenerate if file was deleted or missing
+
+        // Ensure QR file exists (qr_code UUID never changes)
         if (!$guest->qr_code_path || !Storage::disk('public')->exists($guest->qr_code_path)) {
             $this->generateQrCode($guest);
         }
@@ -105,6 +129,19 @@ class GuestController extends Controller
         return redirect()->route('cms.index')->with('success', 'Đã xóa khách!');
     }
 
+    public function toggleLock(Guest $guest)
+    {
+        $guest->update(['is_locked' => !$guest->is_locked]);
+        $msg = $guest->is_locked ? 'Đã khóa QR code!' : 'Đã mở khóa QR code!';
+        return back()->with('success', $msg);
+    }
+
+    public function resetScans(Guest $guest)
+    {
+        $guest->update(['scan_count' => 0, 'is_locked' => false]);
+        return back()->with('success', 'Đã đặt lại bộ đếm quét!');
+    }
+
     public function downloadQr(Guest $guest)
     {
         $path = storage_path('app/public/' . $guest->qr_code_path);
@@ -118,7 +155,6 @@ class GuestController extends Controller
 
         $zip = new ZipArchive();
         $zip->open($zipPath, ZipArchive::CREATE | ZipArchive::OVERWRITE);
-
         foreach ($guests as $guest) {
             $filePath = storage_path('app/public/' . $guest->qr_code_path);
             if (file_exists($filePath)) {
@@ -130,16 +166,10 @@ class GuestController extends Controller
         return response()->download($zipPath, 'qrcodes.zip')->deleteFileAfterSend();
     }
 
-    public function regenerateQr(Guest $guest)
-    {
-        $this->generateQrCode($guest);
-        return back()->with('success', 'Đã tạo lại QR code!');
-    }
-
     private function generateQrCode(Guest $guest)
     {
-        // URL uses guest ID - stable, never changes even if data updates
-        $url = route('welcome', ['guest' => $guest->id]);
+        // URL uses stable UUID - not guessable, never changes
+        $url = route('welcome', ['qrCode' => $guest->qr_code]);
         $dir = storage_path('app/public/qrcodes');
         if (!is_dir($dir)) {
             mkdir($dir, 0755, true);

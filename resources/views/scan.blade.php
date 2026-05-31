@@ -132,7 +132,7 @@
             <div>
                 <div class="manual-divider">— hoặc nhập mã thủ công —</div>
                 <div class="manual-input-wrap">
-                    <input type="text" class="manual-input" id="manualId" placeholder="Nhập ID khách...">
+                    <input type="text" class="manual-input" id="manualId" placeholder="Dán UUID hoặc URL QR...">
                     <button class="submit-btn" onclick="manualCheck()"><i class="fas fa-search"></i></button>
                 </div>
             </div>
@@ -162,8 +162,11 @@
             status.innerHTML = msg;
         }
 
-        function buildUrl(guestId) {
-            let url = '{{ url("/welcome") }}/' + guestId;
+        // UUID regex: 8-4-4-4-12 hex groups
+        const UUID_RE = /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i;
+
+        function buildUrl(qrCode) {
+            let url = '{{ url("/welcome") }}/' + qrCode;
             if (stationSlug) url += '?station=' + stationSlug;
             return url;
         }
@@ -172,14 +175,11 @@
             if (isRedirecting) return;
             isRedirecting = true;
 
-            // Match /welcome/{id} URL or just a numeric ID
-            const welcomeMatch = decodedText.match(/\/welcome\/(\d+)/);
-            if (welcomeMatch) {
+            // Extract UUID from full URL or bare UUID
+            const uuidMatch = decodedText.match(UUID_RE);
+            if (uuidMatch) {
                 setStatus('<i class="fas fa-check-circle"></i> Đã nhận diện!', 'success');
-                setTimeout(() => { window.location.href = buildUrl(welcomeMatch[1]); }, 400);
-            } else if (/^\d+$/.test(decodedText.trim())) {
-                setStatus('<i class="fas fa-check-circle"></i> Đã nhận diện!', 'success');
-                setTimeout(() => { window.location.href = buildUrl(decodedText.trim()); }, 400);
+                setTimeout(() => { window.location.href = buildUrl(uuidMatch[0]); }, 400);
             } else {
                 isRedirecting = false;
                 setStatus('<i class="fas fa-exclamation-triangle"></i> Mã QR không hợp lệ', 'error');
@@ -193,9 +193,10 @@
         setTimeout(() => { if (!isRedirecting) setStatus('<i class="fas fa-camera"></i> Đang quét... Đưa mã QR vào khung hình', 'scanning'); }, 1500);
 
         function manualCheck() {
-            const id = document.getElementById('manualId').value.trim();
-            if (!id) return;
-            window.location.href = buildUrl(id);
+            const raw = document.getElementById('manualId').value.trim();
+            if (!raw) return;
+            const m = raw.match(UUID_RE);
+            window.location.href = buildUrl(m ? m[0] : raw);
         }
         document.getElementById('manualId').addEventListener('keypress', e => { if (e.key === 'Enter') manualCheck(); });
     </script>

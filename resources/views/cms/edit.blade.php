@@ -117,6 +117,9 @@
                         </label>
                     </div>
 
+                    {{-- Scan mode --}}
+                    @include('cms._scan_mode_fields', ['guest' => $guest])
+
                     <div style="display:flex; gap:12px; margin-top:24px;">
                         <button type="submit" class="btn btn-primary" style="flex:1">
                             <i class="fas fa-save"></i> Lưu thay đổi
