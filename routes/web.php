@@ -22,11 +22,15 @@ Route::get('/stats', [StatsController::class, 'index'])->name('stats');
 
 // CMS
 Route::prefix('cms')->name('cms.')->group(function () {
-    // Guests
+    // Guests - list & bulk actions
     Route::get('/', [GuestController::class, 'index'])->name('index');
     Route::get('/create', [GuestController::class, 'create'])->name('create');
     Route::post('/', [GuestController::class, 'store'])->name('store');
     Route::get('/download-all-qr', [GuestController::class, 'downloadAllQr'])->name('download-all-qr');
+    Route::delete('/destroy-all', [GuestController::class, 'destroyAll'])->name('destroy-all');
+    Route::delete('/destroy-selected', [GuestController::class, 'destroySelected'])->name('destroy-selected');
+
+    // Individual guest actions
     Route::get('/{guest}/edit', [GuestController::class, 'edit'])->name('edit');
     Route::put('/{guest}', [GuestController::class, 'update'])->name('update');
     Route::delete('/{guest}', [GuestController::class, 'destroy'])->name('destroy');

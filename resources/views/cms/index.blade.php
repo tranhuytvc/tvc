@@ -63,7 +63,7 @@
 
     <div class="card">
         <div class="card-header">
-            <h2><i class="fas fa-users"></i> Danh sách khách mời ({{ $guests->total() }})</h2>
+            <h2><i class="fas fa-users"></i> Danh sách khách mời <span style="opacity:0.7; font-size:0.85rem;">({{ $totalCount }} tổng)</span></h2>
             <div style="display:flex; gap:8px; flex-wrap:wrap;">
                 <a href="{{ route('cms.download-all-qr') }}" class="btn btn-warning btn-sm">
                     <i class="fas fa-download"></i> Tải tất cả QR
@@ -71,6 +71,11 @@
                 <a href="{{ route('cms.create') }}" class="btn btn-success btn-sm">
                     <i class="fas fa-plus"></i> Thêm khách
                 </a>
+                @if($totalCount > 0)
+                <button class="btn btn-danger btn-sm" onclick="confirmDeleteAll()">
+                    <i class="fas fa-trash-alt"></i> Xóa tất cả
+                </button>
+                @endif
             </div>
         </div>
         <div class="card-body">
@@ -93,16 +98,22 @@
             {{-- Bulk action bar --}}
             <div class="bulk-bar" id="bulkBar">
                 <span class="bulk-count"><span id="selectedCount">0</span> khách được chọn</span>
-                <form method="POST" action="#" id="bulkLockForm">
-                    @csrf
-                    <button type="button" class="btn btn-danger btn-sm" onclick="bulkAction('lock')">
-                        <i class="fas fa-lock"></i> Khóa tất cả
-                    </button>
-                </form>
+                <button class="btn btn-danger btn-sm" onclick="bulkDelete()">
+                    <i class="fas fa-trash"></i> Xóa đã chọn
+                </button>
                 <button class="btn btn-secondary btn-sm" onclick="clearSelection()">
                     <i class="fas fa-times"></i> Bỏ chọn
                 </button>
             </div>
+
+            {{-- Hidden forms for bulk/all delete --}}
+            <form id="deleteAllForm" method="POST" action="{{ route('cms.destroy-all') }}" style="display:none;">
+                @csrf @method('DELETE')
+            </form>
+            <form id="deleteSelectedForm" method="POST" action="{{ route('cms.destroy-selected') }}" style="display:none;">
+                @csrf @method('DELETE')
+                <div id="selectedIdsContainer"></div>
+            </form>
 
             <div style="overflow-x:auto;">
                 <table class="table" id="guestTable">
@@ -303,13 +314,18 @@
         updateBulkBar();
     }
 
-    function bulkAction(action) {
+    function confirmDeleteAll() {
+        if (!confirm('Xóa TẤT CẢ khách mời và toàn bộ file liên quan? Hành động này không thể hoàn tác!')) return;
+        document.getElementById('deleteAllForm').submit();
+    }
+
+    function bulkDelete() {
         const ids = [...document.querySelectorAll('.guest-check:checked')].map(c => c.value);
         if (!ids.length) return;
-        if (!confirm(`Thực hiện "${action}" cho ${ids.length} khách?`)) return;
-        // Send as individual toggle-lock requests
-        // For simplicity, redirect with a note. Full bulk API can be added.
-        alert('Tính năng bulk đang cập nhật. Vui lòng khóa từng khách.');
+        if (!confirm(`Xóa ${ids.length} khách đã chọn và toàn bộ file liên quan?`)) return;
+        const container = document.getElementById('selectedIdsContainer');
+        container.innerHTML = ids.map(id => `<input type="hidden" name="ids[]" value="${id}">`).join('');
+        document.getElementById('deleteSelectedForm').submit();
     }
 </script>
 @endpush
