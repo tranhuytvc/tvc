@@ -6,6 +6,7 @@
 
 ## 📋 Mục lục
 
+0. [Tải code về máy local](#0-tải-code-về-máy-local)
 1. [Yêu cầu VPS](#1-yêu-cầu-vps)
 2. [Cài đặt môi trường trên VPS](#2-cài-đặt-môi-trường-trên-vps)
 3. [Tạo Database MySQL](#3-tạo-database-mysql)
@@ -18,6 +19,37 @@
 10. [Tài khoản đăng nhập mặc định](#10-tài-khoản-đăng-nhập-mặc-định)
 
 ---
+
+## 0. Tải code về máy local
+
+### Cách 1: Thư mục mới (khuyên dùng)
+
+```bash
+git clone -b claude/qr-code-welcome-system-44fHI https://github.com/tranhuytvc/tvc.git tvc
+cd tvc
+```
+
+### Cách 2: Đang đứng trong thư mục đích (thư mục rỗng hoặc có file cũ)
+
+```bash
+# Nếu có file cũ xung đột, xóa trước
+rm -f DEPLOY.md   # xóa file nào bị báo conflict
+
+git init
+git remote add origin https://github.com/tranhuytvc/tvc.git
+git pull origin claude/qr-code-welcome-system-44fHI
+```
+
+### Cách 3: Tải ZIP không cần Git
+
+Truy cập link sau trên trình duyệt, tải về rồi giải nén:
+
+```
+https://github.com/tranhuytvc/tvc/archive/refs/heads/claude/qr-code-welcome-system-44fHI.zip
+```
+
+---
+
 
 ## 1. Yêu cầu VPS
 
