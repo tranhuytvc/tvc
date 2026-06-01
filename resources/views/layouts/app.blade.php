@@ -7,7 +7,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f0f2f5; color: #333; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f0f2f5; color: #333; min-height: 100vh; display: flex; flex-direction: column; }
 
         .navbar {
             background: linear-gradient(135deg, #1a1a2e, #16213e, #0f3460);
@@ -16,7 +16,19 @@
             height: 60px; box-shadow: 0 2px 10px rgba(0,0,0,0.3);
             position: sticky; top: 0; z-index: 100;
         }
-        .navbar-brand { font-size: 1.2rem; font-weight: 700; color: #e94560; text-decoration: none; display: flex; align-items: center; gap: 10px; }
+        .navbar-brand { font-size: 1.2rem; font-weight: 700; color: white; text-decoration: none; display: flex; align-items: center; gap: 10px; }
+        .navbar-brand .brand-logo { height: 36px; max-width: 140px; object-fit: contain; }
+        .navbar-brand .brand-text { display: flex; flex-direction: column; line-height: 1.1; }
+        .navbar-brand .brand-name { font-size: 1.15rem; font-weight: 800; letter-spacing: 1px; background: linear-gradient(135deg, #fff 30%, #a78bfa); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+        .navbar-brand .brand-sub  { font-size: 0.6rem; font-weight: 500; color: rgba(255,255,255,0.45); letter-spacing: 2px; text-transform: uppercase; -webkit-text-fill-color: rgba(255,255,255,0.45); }
+
+        .site-footer {
+            background: linear-gradient(135deg, #1a1a2e, #16213e);
+            color: rgba(255,255,255,0.4); text-align: center;
+            padding: 16px 24px; font-size: 0.8rem; margin-top: auto;
+            border-top: 1px solid rgba(255,255,255,0.06);
+        }
+        .site-footer span { color: rgba(255,255,255,0.65); font-weight: 600; }
         .navbar-nav { display: flex; gap: 6px; list-style: none; }
         .navbar-nav a {
             color: rgba(255,255,255,0.85); text-decoration: none; padding: 8px 14px;
@@ -115,8 +127,19 @@
 </head>
 <body>
     <nav class="navbar">
-        <a href="{{ route('scan') }}" class="navbar-brand">
-            <i class="fas fa-qrcode"></i> QR Welcome
+        <a href="{{ route('cms.index') }}" class="navbar-brand">
+            {{-- Nếu có file public/images/logo.png thì hiện ảnh, không thì hiện text --}}
+            @if(file_exists(public_path('images/logo.png')))
+                <img src="{{ asset('images/logo.png') }}" class="brand-logo" alt="TVTECH Logo">
+            @else
+                <div style="width:36px;height:36px;background:linear-gradient(135deg,#667eea,#e94560);border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                    <i class="fas fa-qrcode" style="font-size:1.1rem;color:white;"></i>
+                </div>
+                <div class="brand-text">
+                    <span class="brand-name">TVTECH</span>
+                    <span class="brand-sub">QR Welcome</span>
+                </div>
+            @endif
         </a>
         <ul class="navbar-nav">
             <li><a href="{{ route('scan') }}" class="{{ request()->routeIs('scan') && !request()->route('slug') ? 'active' : '' }}"><i class="fas fa-camera"></i> Quét QR</a></li>
@@ -201,9 +224,14 @@
             document.getElementById('userDropdown') && (document.getElementById('userDropdown').style.display = 'none');
         });
     </script>
-    <main>
+    <main style="flex:1;">
         @yield('content')
     </main>
+
+    <footer class="site-footer">
+        Quản lý bản quyền bởi <span>TVTECH</span> &copy; {{ date('Y') }}
+    </footer>
+
     @stack('scripts')
 </body>
 </html>
