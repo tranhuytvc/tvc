@@ -74,5 +74,5 @@ Route::prefix('cms')->name('cms.')->middleware('auth')->group(function () {
 });
 
 Route::get('/', function () {
-    return redirect()->route('scan');
-});
+    return view('landing');
+})->name('home');
