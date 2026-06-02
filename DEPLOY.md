@@ -2,7 +2,7 @@
 
 > **Stack:** Laravel 13 · PHP 8.4 · MySQL · Nginx · Ubuntu 20.04/22.04
 >
-> **Domain:** `chothuecongnghetuongtac.com/qrwelcome`
+> **Domain:** `qrevent.chothuecongnghetuongtac.com`
 > **Đường dẫn VPS:** `/var/www/chothuecongnghetuongtac.com/public/qrwelcome`
 
 ---
@@ -14,7 +14,7 @@
 2. [Cài đặt môi trường trên VPS](#2-cài-đặt-môi-trường-trên-vps)
 3. [Tạo Database MySQL](#3-tạo-database-mysql)
 4. [Upload code lên VPS (SCP)](#4-upload-code-lên-vps-scp)
-5. [Cấu hình dự án](#5-cấu-hình-dự-án)
+5. [Cấu hình dự án (.env)](#5-cấu-hình-dự-án-env)
 6. [Cấu hình Nginx](#6-cấu-hình-nginx)
 7. [Chạy migration & seed dữ liệu ban đầu](#7-chạy-migration--seed-dữ-liệu-ban-đầu)
 8. [Phân quyền thư mục & kiểm tra](#8-phân-quyền-thư-mục--kiểm-tra)
@@ -133,20 +133,17 @@ systemctl enable nginx
 
 ## 3. Tạo Database MySQL
 
-> ⚠️ Nếu đã tạo database rồi, bỏ qua phần này, chỉ cần ghi lại thông tin DB để điền vào `.env`.
+> ⚠️ Nếu đã tạo database rồi, bỏ qua — chỉ cần ghi lại tên DB, user, mật khẩu để điền vào `.env`.
 
 ```bash
 mysql -u root -p
 ```
 
 ```sql
--- Tạo database
 CREATE DATABASE qrwelcome CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
--- Tạo user riêng
 CREATE USER 'qruser'@'localhost' IDENTIFIED BY 'MatKhauManhNe';
 
--- Cấp quyền
 GRANT ALL PRIVILEGES ON qrwelcome.* TO 'qruser'@'localhost';
 FLUSH PRIVILEGES;
 EXIT;
@@ -206,7 +203,7 @@ ls -la
 
 ---
 
-## 5. Cấu hình dự án
+## 5. Cấu hình dự án (.env)
 
 ### 5.1 Cài dependencies PHP
 
@@ -234,7 +231,7 @@ APP_NAME="QR Welcome"
 APP_ENV=production
 APP_KEY=
 APP_DEBUG=false
-APP_URL=https://chothuecongnghetuongtac.com/qrwelcome
+APP_URL=https://qrevent.chothuecongnghetuongtac.com
 
 APP_LOCALE=vi
 
@@ -263,55 +260,86 @@ php artisan key:generate
 
 ## 6. Cấu hình Nginx
 
-App nằm trong **subfolder** `/qrwelcome` của domain chính. Cần thêm `location` block vào file cấu hình Nginx của `chothuecongnghetuongtac.com`.
+Vì dùng **subdomain riêng** `qrevent.chothuecongnghetuongtac.com`, ta tạo một server block độc lập — sạch và đơn giản hơn subfolder.
 
-### 6.1 Mở file cấu hình Nginx của domain chính
+### 6.1 Tạo file cấu hình mới
 
 ```bash
-# Tìm file cấu hình hiện tại
-ls /etc/nginx/sites-available/
-# Thường có tên: chothuecongnghetuongtac.com hoặc default
-
-nano /etc/nginx/sites-available/chothuecongnghetuongtac.com
+nano /etc/nginx/sites-available/qrevent.chothuecongnghetuongtac.com
 ```
 
-### 6.2 Thêm location block vào trong `server { }` hiện có
-
-Tìm `server { ... }` trong file và thêm đoạn sau vào bên trong (trước dấu `}` cuối cùng):
+Dán toàn bộ nội dung sau:
 
 ```nginx
-# ── QR Welcome App ───────────────────────────────────────────
-location ^~ /qrwelcome {
-    alias /var/www/chothuecongnghetuongtac.com/public/qrwelcome/public;
-    try_files $uri $uri/ @qrwelcome;
-    index index.php;
+server {
+    listen 80;
+    server_name qrevent.chothuecongnghetuongtac.com;
 
+    root /var/www/chothuecongnghetuongtac.com/public/qrwelcome/public;
+    index index.php index.html;
+
+    # Laravel routing
+    location / {
+        try_files $uri $uri/ /index.php?$query_string;
+    }
+
+    # PHP xử lý
     location ~ \.php$ {
         include snippets/fastcgi-php.conf;
         fastcgi_pass unix:/var/run/php/php8.4-fpm.sock;
-        fastcgi_param SCRIPT_FILENAME /var/www/chothuecongnghetuongtac.com/public/qrwelcome/public$fastcgi_script_name;
+        fastcgi_param SCRIPT_FILENAME $realpath_root$fastcgi_script_name;
         include fastcgi_params;
         fastcgi_read_timeout 300;
+        fastcgi_send_timeout 300;
     }
-}
 
-location @qrwelcome {
-    rewrite ^/qrwelcome/(.*)$ /qrwelcome/index.php?/$1 last;
-}
-# ─────────────────────────────────────────────────────────────
+    # Chặn truy cập file ẩn (.env, .git...)
+    location ~ /\. {
+        deny all;
+    }
 
-# Upload file lớn (ảnh/video)
-client_max_body_size 200M;
+    # Upload file lớn (ảnh/video)
+    client_max_body_size 200M;
+
+    # Gzip
+    gzip on;
+    gzip_types text/plain text/css application/json application/javascript text/xml;
+}
 ```
 
-### 6.3 Kiểm tra và reload Nginx
+### 6.2 Kích hoạt và reload Nginx
 
 ```bash
+# Tạo symlink kích hoạt
+ln -s /etc/nginx/sites-available/qrevent.chothuecongnghetuongtac.com \
+      /etc/nginx/sites-enabled/
+
 # Kiểm tra cú pháp
 nginx -t
 
 # Reload
 systemctl reload nginx
+```
+
+### 6.3 Cài SSL miễn phí (HTTPS)
+
+> DNS subdomain `qrevent` phải trỏ về IP VPS trước.
+
+```bash
+apt install -y certbot python3-certbot-nginx
+
+certbot --nginx -d qrevent.chothuecongnghetuongtac.com
+
+# Kiểm tra auto-renew
+certbot renew --dry-run
+```
+
+Sau khi có SSL, cập nhật `.env`:
+```bash
+nano /var/www/chothuecongnghetuongtac.com/public/qrwelcome/.env
+# Đảm bảo: APP_URL=https://qrevent.chothuecongnghetuongtac.com
+
+php artisan config:cache
 ```
 
 ---
@@ -321,7 +349,7 @@ systemctl reload nginx
 ```bash
 cd /var/www/chothuecongnghetuongtac.com/public/qrwelcome
 
-# Tạo bảng trong DB
+# Tạo bảng DB
 php artisan migrate --force
 
 # Tạo Super Admin + tất cả permissions
@@ -330,7 +358,7 @@ php artisan db:seed --class=AdminSeeder --force
 # Tạo symlink storage (ảnh/video public)
 php artisan storage:link
 
-# Tối ưu cache production
+# Cache production
 php artisan config:cache
 php artisan route:cache
 php artisan view:cache
@@ -349,13 +377,13 @@ chmod -R 755 /var/www/chothuecongnghetuongtac.com/public/qrwelcome
 chmod -R 775 /var/www/chothuecongnghetuongtac.com/public/qrwelcome/storage
 chmod -R 775 /var/www/chothuecongnghetuongtac.com/public/qrwelcome/bootstrap/cache
 
-# Tạo thư mục media nếu chưa có
+# Tạo thư mục media
 mkdir -p /var/www/chothuecongnghetuongtac.com/public/qrwelcome/storage/app/public/qrcodes
 mkdir -p /var/www/chothuecongnghetuongtac.com/public/qrwelcome/storage/app/public/media
 chown -R www-data:www-data /var/www/chothuecongnghetuongtac.com/public/qrwelcome/storage
 ```
 
-**Kiểm tra:**
+**Kiểm tra hoạt động:**
 
 ```bash
 systemctl status php8.4-fpm
@@ -366,9 +394,13 @@ php artisan db:show
 ```
 
 Mở trình duyệt:
-- Trang quét QR: `https://chothuecongnghetuongtac.com/qrwelcome/scan`
-- Trang CMS: `https://chothuecongnghetuongtac.com/qrwelcome/cms`
-- Trang login: `https://chothuecongnghetuongtac.com/qrwelcome/login`
+
+| Trang | URL |
+|---|---|
+| Quét QR | `https://qrevent.chothuecongnghetuongtac.com/scan` |
+| Màn hình hiển thị | `https://qrevent.chothuecongnghetuongtac.com/display` |
+| Đăng nhập CMS | `https://qrevent.chothuecongnghetuongtac.com/login` |
+| Quản lý khách | `https://qrevent.chothuecongnghetuongtac.com/cms` |
 
 ---
 
@@ -376,19 +408,19 @@ Mở trình duyệt:
 
 | Trường | Giá trị |
 |---|---|
-| URL | `https://chothuecongnghetuongtac.com/qrwelcome/login` |
+| URL | `https://qrevent.chothuecongnghetuongtac.com/login` |
 | Email | `admin@admin.com` |
 | Mật khẩu | `admin123` |
 
 > ⚠️ **Đổi mật khẩu ngay sau khi đăng nhập lần đầu!**
-> Vào `/qrwelcome/cms/users` → chọn Super Admin → sửa mật khẩu.
+> Vào `CMS → Quản trị → Người dùng → Super Admin → Sửa`.
 
 ---
 
 ## 🔄 Cập nhật code lần sau
 
 ```bash
-# Từ máy local — upload các thư mục thay đổi
+# Từ máy local
 scp -r ./app ./resources ./routes root@YOUR_VPS_IP:/var/www/chothuecongnghetuongtac.com/public/qrwelcome/
 
 # Trên VPS
@@ -405,7 +437,7 @@ chown -R www-data:www-data storage bootstrap/cache
 
 ## 🛠️ Xử lý lỗi thường gặp
 
-### Lỗi 500 - Internal Server Error
+### Lỗi 500
 ```bash
 tail -f /var/www/chothuecongnghetuongtac.com/public/qrwelcome/storage/logs/laravel.log
 tail -f /var/log/nginx/error.log
@@ -420,28 +452,26 @@ chown -R www-data:www-data /var/www/chothuecongnghetuongtac.com/public/qrwelcome
 ### Lỗi "No application encryption key"
 ```bash
 cd /var/www/chothuecongnghetuongtac.com/public/qrwelcome
-php artisan key:generate
-php artisan config:cache
+php artisan key:generate && php artisan config:cache
 ```
 
 ### Lỗi PHP-FPM socket không tìm thấy
 ```bash
 ls /var/run/php/
-# Nếu thấy php8.X-fpm.sock khác phiên bản thì sửa trong file Nginx
-```
-
-### Lỗi "Class not found" sau deploy
-```bash
-cd /var/www/chothuecongnghetuongtac.com/public/qrwelcome
-composer dump-autoload --optimize
-php artisan config:clear
-php artisan cache:clear
+# Sửa đường dẫn socket trong file Nginx cho khớp phiên bản PHP
 ```
 
 ### Link ảnh/QR không hiển thị
 ```bash
 cd /var/www/chothuecongnghetuongtac.com/public/qrwelcome
 php artisan storage:link
+```
+
+### Lỗi "Class not found" sau deploy
+```bash
+cd /var/www/chothuecongnghetuongtac.com/public/qrwelcome
+composer dump-autoload --optimize
+php artisan config:clear && php artisan cache:clear
 ```
 
 ---
@@ -453,7 +483,7 @@ php artisan storage:link
 ├── app/Http/Controllers/     # Controllers
 ├── app/Models/               # Models (Guest, User, Role...)
 ├── database/migrations/      # Database migrations
-├── public/                   # ← Nginx alias trỏ vào đây
+├── public/                   # ← Nginx root trỏ vào đây
 │   ├── index.php
 │   └── storage -> storage/app/public
 ├── resources/views/          # Blade templates
