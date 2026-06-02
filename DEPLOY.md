@@ -1,6 +1,9 @@
 # 🚀 Hướng dẫn Deploy QR Welcome System lên VPS
 
 > **Stack:** Laravel 13 · PHP 8.4 · MySQL · Nginx · Ubuntu 20.04/22.04
+>
+> **Domain:** `chothuecongnghetuongtac.com/qrwelcome`
+> **Đường dẫn VPS:** `/var/www/chothuecongnghetuongtac.com/public/qrwelcome`
 
 ---
 
@@ -10,13 +13,12 @@
 1. [Yêu cầu VPS](#1-yêu-cầu-vps)
 2. [Cài đặt môi trường trên VPS](#2-cài-đặt-môi-trường-trên-vps)
 3. [Tạo Database MySQL](#3-tạo-database-mysql)
-4. [Upload code từ máy local lên VPS (SCP)](#4-upload-code-từ-máy-local-lên-vps-scp)
+4. [Upload code lên VPS (SCP)](#4-upload-code-lên-vps-scp)
 5. [Cấu hình dự án](#5-cấu-hình-dự-án)
 6. [Cấu hình Nginx](#6-cấu-hình-nginx)
 7. [Chạy migration & seed dữ liệu ban đầu](#7-chạy-migration--seed-dữ-liệu-ban-đầu)
 8. [Phân quyền thư mục & kiểm tra](#8-phân-quyền-thư-mục--kiểm-tra)
-9. [Cấu hình HTTPS (SSL miễn phí)](#9-cấu-hình-https-ssl-miễn-phí)
-10. [Tài khoản đăng nhập mặc định](#10-tài-khoản-đăng-nhập-mặc-định)
+9. [Tài khoản đăng nhập mặc định](#9-tài-khoản-đăng-nhập-mặc-định)
 
 ---
 
@@ -29,11 +31,11 @@ git clone -b claude/qr-code-welcome-system-44fHI https://github.com/tranhuytvc/t
 cd tvc
 ```
 
-### Cách 2: Đang đứng trong thư mục đích (thư mục rỗng hoặc có file cũ)
+### Cách 2: Đang đứng trong thư mục đích (có file cũ)
 
 ```bash
-# Nếu có file cũ xung đột, xóa trước
-rm -f DEPLOY.md   # xóa file nào bị báo conflict
+# Xóa file xung đột nếu có
+rm -f DEPLOY.md
 
 git init
 git remote add origin https://github.com/tranhuytvc/tvc.git
@@ -42,14 +44,11 @@ git pull origin claude/qr-code-welcome-system-44fHI
 
 ### Cách 3: Tải ZIP không cần Git
 
-Truy cập link sau trên trình duyệt, tải về rồi giải nén:
-
 ```
 https://github.com/tranhuytvc/tvc/archive/refs/heads/claude/qr-code-welcome-system-44fHI.zip
 ```
 
 ---
-
 
 ## 1. Yêu cầu VPS
 
@@ -71,8 +70,6 @@ https://github.com/tranhuytvc/tvc/archive/refs/heads/claude/qr-code-welcome-syst
 
 ```bash
 ssh root@YOUR_VPS_IP
-# Hoặc dùng user khác:
-ssh ubuntu@YOUR_VPS_IP
 ```
 
 ### 2.2 Cập nhật hệ thống
@@ -84,12 +81,10 @@ apt update && apt upgrade -y
 ### 2.3 Cài PHP 8.4 và các extension cần thiết
 
 ```bash
-# Thêm repository PHP
 apt install -y software-properties-common
 add-apt-repository ppa:ondrej/php -y
 apt update
 
-# Cài PHP 8.4 và extensions
 apt install -y \
   php8.4 \
   php8.4-fpm \
@@ -103,11 +98,8 @@ apt install -y \
   php8.4-intl \
   php8.4-tokenizer \
   php8.4-fileinfo \
-  unzip \
-  curl \
-  git
+  unzip curl git
 
-# Kiểm tra
 php -v
 ```
 
@@ -117,88 +109,65 @@ php -v
 curl -sS https://getcomposer.org/installer | php
 mv composer.phar /usr/local/bin/composer
 chmod +x /usr/local/bin/composer
-
-# Kiểm tra
 composer --version
 ```
 
-### 2.5 Cài MySQL
+### 2.5 Cài MySQL (nếu chưa có)
 
 ```bash
 apt install -y mysql-server
-
-# Khởi động MySQL
 systemctl start mysql
 systemctl enable mysql
-
-# Bảo mật cài đặt MySQL (đặt mật khẩu root)
 mysql_secure_installation
-# → Trả lời: Y Y Y Y Y
 ```
 
-### 2.6 Cài Nginx
+### 2.6 Cài Nginx (nếu chưa có)
 
 ```bash
 apt install -y nginx
 systemctl start nginx
 systemctl enable nginx
-
-# Kiểm tra Nginx đang chạy
-systemctl status nginx
 ```
 
 ---
 
 ## 3. Tạo Database MySQL
 
-### 3.1 Đăng nhập MySQL
+> ⚠️ Nếu đã tạo database rồi, bỏ qua phần này, chỉ cần ghi lại thông tin DB để điền vào `.env`.
 
 ```bash
 mysql -u root -p
-# Nhập mật khẩu root MySQL bạn vừa đặt ở bước 2.5
 ```
-
-### 3.2 Tạo database và user
 
 ```sql
 -- Tạo database
 CREATE DATABASE qrwelcome CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
--- Tạo user riêng (thay 'MatKhauManhNe' bằng mật khẩu thực của bạn)
+-- Tạo user riêng
 CREATE USER 'qruser'@'localhost' IDENTIFIED BY 'MatKhauManhNe';
 
 -- Cấp quyền
 GRANT ALL PRIVILEGES ON qrwelcome.* TO 'qruser'@'localhost';
-
--- Áp dụng
 FLUSH PRIVILEGES;
-
--- Kiểm tra
-SHOW DATABASES;
-
--- Thoát MySQL
 EXIT;
 ```
 
 ---
 
-## 4. Upload code từ máy local lên VPS (SCP)
+## 4. Upload code lên VPS (SCP)
 
 ### 4.1 Tạo thư mục đích trên VPS
 
 ```bash
-# Trên VPS
-mkdir -p /var/www/qrwelcome
+mkdir -p /var/www/chothuecongnghetuongtac.com/public/qrwelcome
 ```
 
-### 4.2 Tạo file ZIP trên máy local (Windows/Mac/Linux)
+### 4.2 Tạo file ZIP trên máy local
 
-**Trên Linux/Mac:**
+**Linux/Mac:**
 ```bash
-# Di chuyển vào thư mục chứa project
 cd /đường/dẫn/tới/tvc
 
-# Tạo ZIP (bỏ qua node_modules, vendor, .git, storage/app/public)
 zip -r qrwelcome.zip . \
   --exclude "*.git*" \
   --exclude "*/node_modules/*" \
@@ -208,34 +177,29 @@ zip -r qrwelcome.zip . \
   --exclude "*/.env"
 ```
 
-**Trên Windows (PowerShell):**
+**Windows (PowerShell):**
 ```powershell
-# Di chuyển vào thư mục project
 cd C:\đường\dẫn\tới\tvc
-
-# Nén (bỏ qua các thư mục không cần)
 Compress-Archive -Path . -DestinationPath qrwelcome.zip
-# (Sau đó xóa vendor, node_modules, .env trong ZIP bằng tay nếu cần)
 ```
 
-### 4.3 Upload ZIP lên VPS bằng SCP
+### 4.3 Upload lên VPS bằng SCP
 
 ```bash
-# Chạy lệnh này trên MÁY LOCAL (không phải VPS)
-scp qrwelcome.zip root@YOUR_VPS_IP:/var/www/qrwelcome/
+# Chạy trên MÁY LOCAL
+scp qrwelcome.zip root@YOUR_VPS_IP:/var/www/chothuecongnghetuongtac.com/public/qrwelcome/
 
 # Nếu dùng port SSH khác (ví dụ 2222):
-scp -P 2222 qrwelcome.zip root@YOUR_VPS_IP:/var/www/qrwelcome/
+scp -P 2222 qrwelcome.zip root@YOUR_VPS_IP:/var/www/chothuecongnghetuongtac.com/public/qrwelcome/
 
-# Nếu dùng file .pem (AWS/key):
-scp -i ~/.ssh/your-key.pem qrwelcome.zip ubuntu@YOUR_VPS_IP:/var/www/qrwelcome/
+# Nếu dùng file .pem:
+scp -i ~/.ssh/your-key.pem qrwelcome.zip root@YOUR_VPS_IP:/var/www/chothuecongnghetuongtac.com/public/qrwelcome/
 ```
 
 ### 4.4 Giải nén trên VPS
 
 ```bash
-# Trên VPS
-cd /var/www/qrwelcome
+cd /var/www/chothuecongnghetuongtac.com/public/qrwelcome
 unzip qrwelcome.zip
 ls -la
 ```
@@ -247,9 +211,7 @@ ls -la
 ### 5.1 Cài dependencies PHP
 
 ```bash
-cd /var/www/qrwelcome
-
-# Cài Composer dependencies (không cài dev packages)
+cd /var/www/chothuecongnghetuongtac.com/public/qrwelcome
 composer install --no-dev --optimize-autoloader --no-interaction
 ```
 
@@ -265,14 +227,14 @@ cp .env.example .env
 nano .env
 ```
 
-Sửa các dòng sau (dùng `Ctrl+O` lưu, `Ctrl+X` thoát):
+Sửa các dòng sau (`Ctrl+O` lưu, `Ctrl+X` thoát):
 
 ```env
 APP_NAME="QR Welcome"
 APP_ENV=production
 APP_KEY=
 APP_DEBUG=false
-APP_URL=http://YOUR_DOMAIN_OR_IP
+APP_URL=https://chothuecongnghetuongtac.com/qrwelcome
 
 APP_LOCALE=vi
 
@@ -289,7 +251,7 @@ SESSION_DRIVER=file
 CACHE_STORE=file
 ```
 
-> ⚠️ Thay `YOUR_DOMAIN_OR_IP`, `qrwelcome`, `qruser`, `MatKhauManhNe` bằng giá trị thực của bạn.
+> ⚠️ Thay `qrwelcome`, `qruser`, `MatKhauManhNe` bằng thông tin DB thực của bạn.
 
 ### 5.4 Sinh APP_KEY
 
@@ -297,74 +259,58 @@ CACHE_STORE=file
 php artisan key:generate
 ```
 
-Kiểm tra file `.env` đã có dòng `APP_KEY=base64:...`
-
 ---
 
 ## 6. Cấu hình Nginx
 
-### 6.1 Tạo file cấu hình Nginx
+App nằm trong **subfolder** `/qrwelcome` của domain chính. Cần thêm `location` block vào file cấu hình Nginx của `chothuecongnghetuongtac.com`.
+
+### 6.1 Mở file cấu hình Nginx của domain chính
 
 ```bash
-nano /etc/nginx/sites-available/qrwelcome
+# Tìm file cấu hình hiện tại
+ls /etc/nginx/sites-available/
+# Thường có tên: chothuecongnghetuongtac.com hoặc default
+
+nano /etc/nginx/sites-available/chothuecongnghetuongtac.com
 ```
 
-Dán nội dung sau:
+### 6.2 Thêm location block vào trong `server { }` hiện có
+
+Tìm `server { ... }` trong file và thêm đoạn sau vào bên trong (trước dấu `}` cuối cùng):
 
 ```nginx
-server {
-    listen 80;
-    server_name YOUR_DOMAIN_OR_IP;
+# ── QR Welcome App ───────────────────────────────────────────
+location ^~ /qrwelcome {
+    alias /var/www/chothuecongnghetuongtac.com/public/qrwelcome/public;
+    try_files $uri $uri/ @qrwelcome;
+    index index.php;
 
-    root /var/www/qrwelcome/public;
-    index index.php index.html;
-
-    # Xử lý Laravel routing
-    location / {
-        try_files $uri $uri/ /index.php?$query_string;
-    }
-
-    # Xử lý PHP
     location ~ \.php$ {
         include snippets/fastcgi-php.conf;
         fastcgi_pass unix:/var/run/php/php8.4-fpm.sock;
-        fastcgi_param SCRIPT_FILENAME $realpath_root$fastcgi_script_name;
+        fastcgi_param SCRIPT_FILENAME /var/www/chothuecongnghetuongtac.com/public/qrwelcome/public$fastcgi_script_name;
         include fastcgi_params;
+        fastcgi_read_timeout 300;
     }
-
-    # Bảo mật: chặn truy cập .env và các file ẩn
-    location ~ /\. {
-        deny all;
-    }
-
-    # Upload file lớn (video)
-    client_max_body_size 200M;
-
-    # Tăng timeout cho upload
-    fastcgi_read_timeout 300;
-    fastcgi_send_timeout 300;
-
-    # Gzip
-    gzip on;
-    gzip_types text/plain text/css application/json application/javascript;
 }
+
+location @qrwelcome {
+    rewrite ^/qrwelcome/(.*)$ /qrwelcome/index.php?/$1 last;
+}
+# ─────────────────────────────────────────────────────────────
+
+# Upload file lớn (ảnh/video)
+client_max_body_size 200M;
 ```
 
-> Thay `YOUR_DOMAIN_OR_IP` bằng domain hoặc IP thực của bạn.
-
-### 6.2 Kích hoạt site và kiểm tra
+### 6.3 Kiểm tra và reload Nginx
 
 ```bash
-# Tạo symlink kích hoạt
-ln -s /etc/nginx/sites-available/qrwelcome /etc/nginx/sites-enabled/
-
-# Xóa site mặc định (nếu chưa xóa)
-rm -f /etc/nginx/sites-enabled/default
-
-# Kiểm tra cú pháp Nginx
+# Kiểm tra cú pháp
 nginx -t
 
-# Reload Nginx
+# Reload
 systemctl reload nginx
 ```
 
@@ -373,18 +319,18 @@ systemctl reload nginx
 ## 7. Chạy migration & seed dữ liệu ban đầu
 
 ```bash
-cd /var/www/qrwelcome
+cd /var/www/chothuecongnghetuongtac.com/public/qrwelcome
 
-# Chạy tất cả migration (tạo bảng trong DB)
+# Tạo bảng trong DB
 php artisan migrate --force
 
-# Seed Super Admin + tất cả permissions
+# Tạo Super Admin + tất cả permissions
 php artisan db:seed --class=AdminSeeder --force
 
 # Tạo symlink storage (ảnh/video public)
 php artisan storage:link
 
-# Tối ưu cache cho production
+# Tối ưu cache production
 php artisan config:cache
 php artisan route:cache
 php artisan view:cache
@@ -394,103 +340,59 @@ php artisan view:cache
 
 ## 8. Phân quyền thư mục & kiểm tra
 
-### 8.1 Phân quyền
-
 ```bash
-# Đổi owner về www-data (user của Nginx/PHP-FPM)
-chown -R www-data:www-data /var/www/qrwelcome
+# Đổi owner
+chown -R www-data:www-data /var/www/chothuecongnghetuongtac.com/public/qrwelcome
 
-# Phân quyền thư mục
-chmod -R 755 /var/www/qrwelcome
-chmod -R 775 /var/www/qrwelcome/storage
-chmod -R 775 /var/www/qrwelcome/bootstrap/cache
+# Phân quyền
+chmod -R 755 /var/www/chothuecongnghetuongtac.com/public/qrwelcome
+chmod -R 775 /var/www/chothuecongnghetuongtac.com/public/qrwelcome/storage
+chmod -R 775 /var/www/chothuecongnghetuongtac.com/public/qrwelcome/bootstrap/cache
 
-# Tạo thư mục cần thiết nếu chưa có
-mkdir -p /var/www/qrwelcome/storage/app/public/qrcodes
-mkdir -p /var/www/qrwelcome/storage/app/public/media
-chown -R www-data:www-data /var/www/qrwelcome/storage
+# Tạo thư mục media nếu chưa có
+mkdir -p /var/www/chothuecongnghetuongtac.com/public/qrwelcome/storage/app/public/qrcodes
+mkdir -p /var/www/chothuecongnghetuongtac.com/public/qrwelcome/storage/app/public/media
+chown -R www-data:www-data /var/www/chothuecongnghetuongtac.com/public/qrwelcome/storage
 ```
 
-### 8.2 Tạo file database SQLite nếu dùng SQLite thay MySQL
-
-> Bỏ qua bước này nếu đã dùng MySQL.
+**Kiểm tra:**
 
 ```bash
-touch /var/www/qrwelcome/database/database.sqlite
-chown www-data:www-data /var/www/qrwelcome/database/database.sqlite
-```
-
-### 8.3 Kiểm tra website
-
-```bash
-# Kiểm tra PHP-FPM đang chạy
 systemctl status php8.4-fpm
-
-# Kiểm tra Nginx đang chạy
 systemctl status nginx
 
-# Test kết nối DB
-cd /var/www/qrwelcome
+cd /var/www/chothuecongnghetuongtac.com/public/qrwelcome
 php artisan db:show
 ```
 
-Mở trình duyệt: `http://YOUR_DOMAIN_OR_IP` → phải thấy trang quét QR.
-
-Mở CMS: `http://YOUR_DOMAIN_OR_IP/cms` → redirect về trang login.
-
----
-
-## 9. Cấu hình HTTPS (SSL miễn phí)
-
-> Cần có tên miền trỏ về IP VPS trước khi làm bước này.
-
-```bash
-# Cài Certbot
-apt install -y certbot python3-certbot-nginx
-
-# Tạo SSL certificate (thay yourdomain.com)
-certbot --nginx -d yourdomain.com
-
-# Certbot sẽ tự cập nhật file Nginx và bật HTTPS
-# Kiểm tra auto-renew
-certbot renew --dry-run
-```
-
-Sau khi có SSL, cập nhật `.env`:
-```bash
-nano /var/www/qrwelcome/.env
-# Sửa: APP_URL=https://yourdomain.com
-
-# Clear cache
-php artisan config:cache
-```
+Mở trình duyệt:
+- Trang quét QR: `https://chothuecongnghetuongtac.com/qrwelcome/scan`
+- Trang CMS: `https://chothuecongnghetuongtac.com/qrwelcome/cms`
+- Trang login: `https://chothuecongnghetuongtac.com/qrwelcome/login`
 
 ---
 
-## 10. Tài khoản đăng nhập mặc định
+## 9. Tài khoản đăng nhập mặc định
 
 | Trường | Giá trị |
 |---|---|
-| URL | `http://YOUR_DOMAIN_OR_IP/login` |
+| URL | `https://chothuecongnghetuongtac.com/qrwelcome/login` |
 | Email | `admin@admin.com` |
 | Mật khẩu | `admin123` |
 
 > ⚠️ **Đổi mật khẩu ngay sau khi đăng nhập lần đầu!**
->
-> Vào `/cms/users` → chọn Super Admin → sửa mật khẩu.
+> Vào `/qrwelcome/cms/users` → chọn Super Admin → sửa mật khẩu.
 
 ---
 
 ## 🔄 Cập nhật code lần sau
 
-Khi có code mới, upload lại và chạy:
-
 ```bash
-# Upload file mới lên VPS (từ máy local)
-scp -r ./app ./resources ./routes root@YOUR_VPS_IP:/var/www/qrwelcome/
+# Từ máy local — upload các thư mục thay đổi
+scp -r ./app ./resources ./routes root@YOUR_VPS_IP:/var/www/chothuecongnghetuongtac.com/public/qrwelcome/
 
 # Trên VPS
-cd /var/www/qrwelcome
+cd /var/www/chothuecongnghetuongtac.com/public/qrwelcome
 composer install --no-dev --optimize-autoloader
 php artisan migrate --force
 php artisan config:cache
@@ -505,39 +407,41 @@ chown -R www-data:www-data storage bootstrap/cache
 
 ### Lỗi 500 - Internal Server Error
 ```bash
-# Xem log lỗi Laravel
-tail -f /var/www/qrwelcome/storage/logs/laravel.log
-
-# Xem log Nginx
+tail -f /var/www/chothuecongnghetuongtac.com/public/qrwelcome/storage/logs/laravel.log
 tail -f /var/log/nginx/error.log
 ```
 
 ### Lỗi "Permission denied" khi upload ảnh
 ```bash
-chmod -R 775 /var/www/qrwelcome/storage
-chown -R www-data:www-data /var/www/qrwelcome/storage
+chmod -R 775 /var/www/chothuecongnghetuongtac.com/public/qrwelcome/storage
+chown -R www-data:www-data /var/www/chothuecongnghetuongtac.com/public/qrwelcome/storage
 ```
 
 ### Lỗi "No application encryption key"
 ```bash
-cd /var/www/qrwelcome
+cd /var/www/chothuecongnghetuongtac.com/public/qrwelcome
 php artisan key:generate
 php artisan config:cache
 ```
 
 ### Lỗi PHP-FPM socket không tìm thấy
 ```bash
-# Kiểm tra đường dẫn socket đúng
 ls /var/run/php/
-# Nếu thấy php8.X-fpm.sock khác thì sửa trong file Nginx
+# Nếu thấy php8.X-fpm.sock khác phiên bản thì sửa trong file Nginx
 ```
 
 ### Lỗi "Class not found" sau deploy
 ```bash
-cd /var/www/qrwelcome
+cd /var/www/chothuecongnghetuongtac.com/public/qrwelcome
 composer dump-autoload --optimize
 php artisan config:clear
 php artisan cache:clear
+```
+
+### Link ảnh/QR không hiển thị
+```bash
+cd /var/www/chothuecongnghetuongtac.com/public/qrwelcome
+php artisan storage:link
 ```
 
 ---
@@ -545,19 +449,17 @@ php artisan cache:clear
 ## 📁 Cấu trúc thư mục quan trọng
 
 ```
-/var/www/qrwelcome/
-├── app/
-│   ├── Http/Controllers/     # Controllers
-│   └── Models/               # Models (Guest, User, Role...)
-├── database/
-│   └── migrations/           # Database migrations
-├── public/                   # Web root (Nginx trỏ vào đây)
+/var/www/chothuecongnghetuongtac.com/public/qrwelcome/
+├── app/Http/Controllers/     # Controllers
+├── app/Models/               # Models (Guest, User, Role...)
+├── database/migrations/      # Database migrations
+├── public/                   # ← Nginx alias trỏ vào đây
+│   ├── index.php
 │   └── storage -> storage/app/public
 ├── resources/views/          # Blade templates
 ├── routes/web.php            # Routes
-├── storage/
-│   └── app/public/
-│       ├── media/            # Ảnh/video khách mời
-│       └── qrcodes/          # File QR PNG
+├── storage/app/public/
+│   ├── media/                # Ảnh/video khách mời
+│   └── qrcodes/              # File QR PNG
 └── .env                      # Cấu hình môi trường
 ```
