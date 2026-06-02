@@ -68,6 +68,9 @@
                 <a href="{{ route('cms.download-all-qr') }}" class="btn btn-warning btn-sm">
                     <i class="fas fa-download"></i> Tải tất cả QR
                 </a>
+                <a href="{{ route('cms.import.form') }}" class="btn btn-sm" style="background:#7c3aed;color:#fff;">
+                    <i class="fas fa-file-excel"></i> Import Excel
+                </a>
                 <a href="{{ route('cms.create') }}" class="btn btn-success btn-sm">
                     <i class="fas fa-plus"></i> Thêm khách
                 </a>

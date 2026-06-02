@@ -127,66 +127,215 @@
         }
         .btn-outline-hero:hover { background: rgba(255,255,255,0.07); border-color: rgba(255,255,255,0.4); transform: translateY(-2px); }
 
-        /* 3D Event Scene */
+        /* ── ISO EVENT SCENE ─────────────────────────────── */
         .scene-3d {
-            perspective: 900px;
-            width: 100%; max-width: 900px; margin: 0 auto;
+            width: 100%; max-width: 960px; margin: 0 auto;
             animation: fadeUp 1s 0.4s ease both;
+            perspective: 1400px;
         }
-        .scene-inner {
-            transform: rotateX(18deg) rotateY(-4deg);
+        .scene-iso-wrap {
+            transform: rotateX(22deg) rotateY(-6deg);
             transform-style: preserve-3d;
-            transition: transform 0.5s ease;
-            background: rgba(255,255,255,0.03);
-            border: 1px solid rgba(255,255,255,0.08);
-            border-radius: 24px;
-            padding: 40px;
-            box-shadow: 0 40px 100px rgba(0,0,0,0.6), 0 0 0 1px rgba(124,58,237,0.1);
-            position: relative; overflow: hidden;
+            transition: transform 0.6s cubic-bezier(.25,.46,.45,.94);
+            position: relative;
         }
-        .scene-inner::before {
+        .iso-scene {
+            width: 100%; background: linear-gradient(160deg, #0d0825 0%, #0a0a1a 50%, #0f1535 100%);
+            border-radius: 24px; border: 1px solid rgba(124,58,237,0.2);
+            box-shadow: 0 60px 120px rgba(0,0,0,0.7), 0 0 0 1px rgba(124,58,237,0.08),
+                        0 0 80px rgba(124,58,237,0.08) inset;
+            padding: 32px 28px 24px; overflow: hidden; position: relative;
+        }
+
+        /* floor grid */
+        .iso-scene::before {
             content: '';
-            position: absolute; inset: 0;
-            background: linear-gradient(135deg, rgba(124,58,237,0.06) 0%, rgba(37,99,235,0.06) 100%);
+            position: absolute; inset: 0; border-radius: 24px;
+            background-image:
+                linear-gradient(rgba(124,58,237,0.06) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(124,58,237,0.06) 1px, transparent 1px);
+            background-size: 40px 40px;
         }
-        .scene-grid {
-            display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px;
+
+        /* top glow bar */
+        .iso-scene::after {
+            content: '';
+            position: absolute; top: 0; left: 50%; transform: translateX(-50%);
+            width: 60%; height: 1px;
+            background: linear-gradient(90deg, transparent, rgba(124,58,237,0.8), rgba(96,165,250,0.8), transparent);
+        }
+
+        /* ── MAIN WELCOME SCREEN ── */
+        .main-screen {
+            background: linear-gradient(135deg, #1e0a4a, #0c1a3a);
+            border: 1px solid rgba(124,58,237,0.5);
+            border-radius: 16px; padding: 16px 24px;
+            text-align: center; margin-bottom: 20px; position: relative; z-index: 1;
+            box-shadow: 0 0 40px rgba(124,58,237,0.15), 0 0 0 1px rgba(124,58,237,0.1);
+        }
+        .main-screen-title {
+            font-size: 0.65rem; color: rgba(255,255,255,0.35); letter-spacing: 3px; text-transform: uppercase; margin-bottom: 6px;
+        }
+        .main-screen-welcome {
+            font-size: 1.15rem; font-weight: 800;
+            background: linear-gradient(90deg, #a78bfa, #60a5fa, #f472b6);
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+            animation: shimmer 3s ease-in-out infinite;
+        }
+        @keyframes shimmer {
+            0%,100% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+        }
+        .main-screen-sub { font-size: 0.72rem; color: rgba(255,255,255,0.4); margin-top: 4px; }
+        .main-screen-dots {
+            display: flex; justify-content: center; gap: 4px; margin-top: 10px;
+        }
+        .main-screen-dots span {
+            width: 6px; height: 6px; border-radius: 50%;
+            background: rgba(255,255,255,0.2);
+        }
+        .main-screen-dots span.active { background: #a78bfa; animation: dotPulse 2s ease-in-out infinite; }
+        @keyframes dotPulse { 0%,100%{opacity:1;} 50%{opacity:0.3;} }
+
+        /* ── GATES ROW ── */
+        .gates-row {
+            display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px;
+            position: relative; z-index: 1; margin-bottom: 16px;
+        }
+        .gate {
+            background: rgba(255,255,255,0.03);
+            border: 1px solid rgba(255,255,255,0.07);
+            border-radius: 14px; padding: 14px 10px;
+            text-align: center; position: relative;
+            transition: all 0.4s;
+        }
+        .gate.scanning {
+            border-color: rgba(34,197,94,0.4);
+            background: rgba(34,197,94,0.04);
+            box-shadow: 0 0 24px rgba(34,197,94,0.12);
+        }
+        .gate.welcoming {
+            border-color: rgba(124,58,237,0.5);
+            background: rgba(124,58,237,0.06);
+            box-shadow: 0 0 24px rgba(124,58,237,0.15);
+        }
+        .gate.checkedout {
+            border-color: rgba(251,191,36,0.4);
+            background: rgba(251,191,36,0.04);
+        }
+
+        /* Gate label */
+        .gate-label {
+            font-size: 0.62rem; color: rgba(255,255,255,0.3);
+            letter-spacing: 2px; text-transform: uppercase; margin-bottom: 10px;
+        }
+
+        /* Gate display screen (mini monitor) */
+        .gate-screen {
+            width: 100%; aspect-ratio: 16/9;
+            background: #0a0a1a; border-radius: 8px;
+            border: 1px solid rgba(255,255,255,0.06);
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            margin-bottom: 10px; overflow: hidden; position: relative;
+            min-height: 56px;
+        }
+        .gate-screen.active-screen {
+            background: linear-gradient(135deg, #1a0840, #0a1830);
+            border-color: rgba(124,58,237,0.4);
+        }
+        .gate-screen .gs-name { font-size: 0.65rem; font-weight: 700; color: #a78bfa; }
+        .gate-screen .gs-check { font-size: 1rem; animation: popIn 0.5s cubic-bezier(.34,1.56,.64,1); }
+        @keyframes popIn { 0%{transform:scale(0)opacity:0;} 100%{transform:scale(1);opacity:1;} }
+        .gate-screen .gs-idle { font-size: 0.6rem; color: rgba(255,255,255,0.2); }
+        .gate-screen .gs-clock { font-size: 0.75rem; font-weight: 700; color: rgba(255,255,255,0.5); }
+
+        /* Scan beam animation */
+        .scan-beam {
+            position: absolute; top: 0; left: 0; right: 0; height: 3px;
+            background: linear-gradient(90deg, transparent, #22c55e, transparent);
+            animation: scanDown 1.6s ease-in-out infinite;
+        }
+        @keyframes scanDown {
+            0% { top: 0; opacity: 0; }
+            10% { opacity: 1; }
+            90% { opacity: 1; }
+            100% { top: 100%; opacity: 0; }
+        }
+
+        /* QR icon on gate */
+        .gate-qr {
+            width: 36px; height: 36px; background: white; border-radius: 6px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 1.1rem; margin: 0 auto 8px; color: #0a0a1a;
+        }
+
+        /* Person silhouette */
+        .person {
+            width: 20px; margin: 0 auto;
+        }
+        .person-head {
+            width: 12px; height: 12px; border-radius: 50%; margin: 0 auto 2px;
+        }
+        .person-body {
+            width: 20px; height: 16px; border-radius: 6px 6px 0 0;
+        }
+        .person.waiting .person-head { background: rgba(255,255,255,0.35); }
+        .person.waiting .person-body { background: rgba(255,255,255,0.2); }
+        .person.scanning .person-head { background: #86efac; }
+        .person.scanning .person-body { background: #22c55e55; }
+        .person.done .person-head { background: #c4b5fd; }
+        .person.done .person-body { background: #7c3aed44; }
+
+        /* Gate status badge */
+        .gate-status {
+            font-size: 0.6rem; font-weight: 700; padding: 2px 8px; border-radius: 20px;
+            display: inline-flex; align-items: center; gap: 4px; margin-top: 6px;
+        }
+        .gate-status.online  { background: rgba(34,197,94,0.15); color: #86efac; }
+        .gate-status.active  { background: rgba(124,58,237,0.2); color: #c4b5fd; }
+        .gate-status.ready   { background: rgba(37,99,235,0.15); color: #93c5fd; }
+        .gate-status.out     { background: rgba(245,158,11,0.15); color: #fcd34d; }
+        .gate-status .sdot   { width: 5px; height: 5px; border-radius: 50%; }
+        .gate-status.online .sdot  { background: #22c55e; animation: blink 1.2s infinite; }
+        .gate-status.active .sdot  { background: #a78bfa; animation: blink 0.8s infinite; }
+        .gate-status.ready  .sdot  { background: #60a5fa; }
+        .gate-status.out    .sdot  { background: #f59e0b; }
+
+        /* ── BOTTOM STATS STRIP ── */
+        .iso-stats {
+            display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px;
             position: relative; z-index: 1;
         }
-        .scene-card {
-            background: rgba(255,255,255,0.05);
-            border: 1px solid rgba(255,255,255,0.08);
-            border-radius: 16px; padding: 20px;
-            text-align: left; transition: all 0.3s;
+        .iso-stat {
+            background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.05);
+            border-radius: 10px; padding: 10px 8px; text-align: center;
         }
-        .scene-card:hover { background: rgba(255,255,255,0.09); transform: translateZ(20px) translateY(-4px); }
-        .scene-card .sc-icon {
-            width: 42px; height: 42px; border-radius: 10px;
-            display: flex; align-items: center; justify-content: center;
-            font-size: 1.1rem; margin-bottom: 12px;
-        }
-        .scene-card .sc-title { font-size: 0.82rem; font-weight: 700; color: rgba(255,255,255,0.9); margin-bottom: 4px; }
-        .scene-card .sc-val  { font-size: 1.6rem; font-weight: 800; line-height: 1; }
-        .scene-card .sc-sub  { font-size: 0.72rem; color: rgba(255,255,255,0.4); margin-top: 3px; }
+        .iso-stat-num { font-size: 1rem; font-weight: 800; line-height: 1; }
+        .iso-stat-lbl { font-size: 0.6rem; color: rgba(255,255,255,0.3); margin-top: 3px; }
 
-        /* Floating QR */
-        .qr-float {
-            position: absolute; right: -10px; top: -10px; z-index: 10;
-            width: 110px; height: 110px;
-            animation: floatQr 4s ease-in-out infinite;
-            filter: drop-shadow(0 8px 24px rgba(124,58,237,0.6));
+        /* floating notification */
+        .notif-float {
+            position: absolute; right: -4px; top: 30px; z-index: 20;
+            background: rgba(34,197,94,0.9); color: white;
+            padding: 8px 14px; border-radius: 10px; font-size: 0.72rem; font-weight: 700;
+            box-shadow: 0 8px 20px rgba(34,197,94,0.4);
+            animation: notifFloat 4s ease-in-out infinite;
+            display: flex; align-items: center; gap: 6px;
+            white-space: nowrap;
         }
-        @keyframes floatQr {
-            0%,100% { transform: translateY(0) rotate(0deg); }
-            50% { transform: translateY(-14px) rotate(3deg); }
+        @keyframes notifFloat {
+            0%,100% { transform: translateY(0) translateX(0); opacity: 1; }
+            50% { transform: translateY(-8px) translateX(-4px); opacity: 0.95; }
         }
-        .qr-svg-wrap {
-            width: 110px; height: 110px;
-            background: white; border-radius: 16px; padding: 10px;
-            display: grid; grid-template-columns: repeat(7,1fr); gap: 2px;
+        .notif-float2 {
+            position: absolute; left: -4px; top: 70px; z-index: 20;
+            background: rgba(124,58,237,0.9); color: white;
+            padding: 8px 14px; border-radius: 10px; font-size: 0.72rem; font-weight: 700;
+            box-shadow: 0 8px 20px rgba(124,58,237,0.4);
+            animation: notifFloat 4s 2s ease-in-out infinite;
+            display: flex; align-items: center; gap: 6px;
+            white-space: nowrap;
         }
-        .qr-svg-wrap span { background: #0a0a1a; border-radius: 1px; }
-        .qr-svg-wrap span.w { background: white; }
 
         /* ── STATS BAR ────────────────────────────────────── */
         .stats-bar {
@@ -385,11 +534,13 @@
             .nav { padding: 14px 20px; }
             .nav-links { display: none; }
             section { padding: 70px 20px; }
-            .scene-grid { grid-template-columns: 1fr 1fr; }
+            .gates-row { grid-template-columns: 1fr 1fr; }
+            .iso-stats { grid-template-columns: 1fr 1fr; }
             .steps::before { display: none; }
             .benefits-wrap { grid-template-columns: 1fr; }
             .benefit-visual { display: none; }
             .hero { padding: 100px 20px 60px; }
+            .notif-float, .notif-float2 { display: none; }
         }
     </style>
 </head>
@@ -414,7 +565,7 @@
         <li><a href="#features">Tính năng</a></li>
         <li><a href="#how">Cách hoạt động</a></li>
         <li><a href="#benefits">Lợi ích</a></li>
-        <li><a href="{{ route('login') }}" class="nav-cta"><i class="fas fa-sign-in-alt"></i> Đăng nhập CMS</a></li>
+        <li><a href="#contact">Liên hệ</a></li>
     </ul>
 </nav>
 
@@ -431,67 +582,119 @@
         Hệ thống check-in thông minh bằng QR Code — chào mừng từng khách mời bằng hình ảnh &amp; video cá nhân hoá, quản lý đa cửa real-time, không cần giấy tờ.
     </p>
     <div class="hero-btns">
-        <a href="{{ route('login') }}" class="btn-primary-hero">
-            <i class="fas fa-rocket"></i> Dùng thử ngay
+        <a href="#features" class="btn-primary-hero">
+            <i class="fas fa-rocket"></i> Khám phá tính năng
         </a>
-        <a href="#features" class="btn-outline-hero">
-            <i class="fas fa-play-circle"></i> Xem tính năng
+        <a href="#how" class="btn-outline-hero">
+            <i class="fas fa-play-circle"></i> Cách hoạt động
         </a>
     </div>
 
-    <!-- 3D Scene -->
+    <!-- 3D Isometric Event Scene -->
     <div class="scene-3d" id="scene3d">
-        <div class="scene-inner">
-            <!-- Floating QR -->
-            <div class="qr-float">
-                <div style="width:110px;height:110px;background:white;border-radius:16px;padding:12px;display:flex;align-items:center;justify-content:center;">
-                    <i class="fas fa-qrcode" style="font-size:4rem;color:#0a0a1a;"></i>
-                </div>
-            </div>
+        <div class="scene-iso-wrap" id="sceneWrap">
+            <!-- Floating notifications -->
+            <div class="notif-float">✅ Nguyễn Văn An — Cửa 2 check-in!</div>
+            <div class="notif-float2">🖥️ Màn hình Cửa 3 đang hiển thị</div>
 
-            <div class="scene-grid">
-                <div class="scene-card">
-                    <div class="sc-icon" style="background:rgba(124,58,237,0.15);color:#a78bfa;"><i class="fas fa-users"></i></div>
-                    <div class="sc-title">Khách mời</div>
-                    <div class="sc-val" style="color:#a78bfa;">1,240</div>
-                    <div class="sc-sub">đã đăng ký</div>
-                </div>
-                <div class="scene-card">
-                    <div class="sc-icon" style="background:rgba(40,167,69,0.15);color:#7feba1;"><i class="fas fa-check-circle"></i></div>
-                    <div class="sc-title">Đã check-in</div>
-                    <div class="sc-val" style="color:#7feba1;">987</div>
-                    <div class="sc-sub">hôm nay · 79.6%</div>
-                </div>
-                <div class="scene-card">
-                    <div class="sc-icon" style="background:rgba(37,99,235,0.15);color:#60a5fa;"><i class="fas fa-door-open"></i></div>
-                    <div class="sc-title">Cửa hoạt động</div>
-                    <div class="sc-val" style="color:#60a5fa;">4</div>
-                    <div class="sc-sub">stations online</div>
-                </div>
-            </div>
-
-            <!-- Live feed -->
-            <div style="margin-top:20px;padding:16px;background:rgba(255,255,255,0.03);border-radius:12px;border:1px solid rgba(255,255,255,0.06);">
-                <div style="font-size:0.75rem;color:rgba(255,255,255,0.3);margin-bottom:12px;display:flex;align-items:center;gap:6px;">
-                    <span style="width:6px;height:6px;border-radius:50%;background:#28a745;display:inline-block;animation:blink 1.2s infinite;"></span>
-                    LIVE CHECK-IN
-                </div>
-                <div style="display:flex;flex-direction:column;gap:8px;">
-                    @foreach([
-                        ['Nguyễn Văn A', 'Cửa 1', '14:32', '#a78bfa'],
-                        ['Trần Thị B', 'Cửa 2', '14:31', '#60a5fa'],
-                        ['Lê Minh C', 'Cửa 1', '14:29', '#f472b6'],
-                    ] as $row)
-                    <div style="display:flex;align-items:center;gap:10px;">
-                        <div style="width:28px;height:28px;border-radius:50%;background:{{ $row[3] }}22;border:1px solid {{ $row[3] }}44;display:flex;align-items:center;justify-content:center;font-size:0.7rem;color:{{ $row[3] }};font-weight:700;flex-shrink:0;">{{ strtoupper(substr($row[0],0,1)) }}</div>
-                        <div style="flex:1;font-size:0.8rem;font-weight:600;">{{ $row[0] }}</div>
-                        <div style="font-size:0.72rem;color:rgba(255,255,255,0.3);">{{ $row[1] }}</div>
-                        <div style="font-size:0.7rem;color:rgba(255,255,255,0.25);">{{ $row[2] }}</div>
-                        <div style="width:8px;height:8px;border-radius:50%;background:#28a745;"></div>
+            <div class="iso-scene">
+                <!-- MAIN WELCOME SCREEN -->
+                <div class="main-screen">
+                    <div class="main-screen-title">🖥️ Màn hình sảnh chính</div>
+                    <div class="main-screen-welcome" id="welcomeText">✨ Chào mừng Nguyễn Văn An đến sự kiện!</div>
+                    <div class="main-screen-sub">Hội nghị Công nghệ 2025 · Sảnh A · 987 / 1,240 khách đã check-in</div>
+                    <div class="main-screen-dots">
+                        <span class="active"></span><span></span><span></span><span></span>
                     </div>
-                    @endforeach
                 </div>
-            </div>
+
+                <!-- 4 GATE STATIONS -->
+                <div class="gates-row">
+
+                    <!-- Gate 1: Waiting -->
+                    <div class="gate">
+                        <div class="gate-label">⬛ Cửa 1</div>
+                        <div class="gate-screen">
+                            <div class="gs-clock" id="clock1">14:32</div>
+                            <div class="gs-idle">Chờ khách quét...</div>
+                        </div>
+                        <div class="gate-qr"><i class="fas fa-qrcode"></i></div>
+                        <div class="person waiting">
+                            <div class="person-head"></div>
+                            <div class="person-body"></div>
+                        </div>
+                        <div class="gate-status online"><span class="sdot"></span>Online</div>
+                    </div>
+
+                    <!-- Gate 2: Active scan -->
+                    <div class="gate scanning">
+                        <div class="gate-label">🟢 Cửa 2</div>
+                        <div class="gate-screen active-screen">
+                            <div class="scan-beam"></div>
+                            <div class="gs-name">Đang quét QR...</div>
+                        </div>
+                        <div class="gate-qr" style="background:#22c55e;color:white;animation:pulseQr 1s infinite;"><i class="fas fa-qrcode"></i></div>
+                        <div class="person scanning">
+                            <div class="person-head"></div>
+                            <div class="person-body"></div>
+                        </div>
+                        <div class="gate-status active"><span class="sdot"></span>Đang quét</div>
+                    </div>
+
+                    <!-- Gate 3: Welcome shown -->
+                    <div class="gate welcoming">
+                        <div class="gate-label">🟣 Cửa 3</div>
+                        <div class="gate-screen active-screen" style="background:linear-gradient(135deg,#1a0840,#0a1030);">
+                            <div class="gs-check">✅</div>
+                            <div class="gs-name" style="margin-top:2px;">Trần Thị Bình</div>
+                        </div>
+                        <div class="gate-qr" style="background:#7c3aed;color:white;"><i class="fas fa-check"></i></div>
+                        <div class="person done">
+                            <div class="person-head"></div>
+                            <div class="person-body"></div>
+                        </div>
+                        <div class="gate-status active"><span class="sdot"></span>Check-in xong</div>
+                    </div>
+
+                    <!-- Gate 4: Checkout -->
+                    <div class="gate checkedout">
+                        <div class="gate-label">🟡 Cửa 4</div>
+                        <div class="gate-screen">
+                            <div class="gs-check" style="font-size:.9rem;">🚪</div>
+                            <div class="gs-idle">Cửa Ra</div>
+                        </div>
+                        <div class="gate-qr" style="background:#f59e0b;color:white;"><i class="fas fa-sign-out-alt"></i></div>
+                        <div class="person waiting">
+                            <div class="person-head"></div>
+                            <div class="person-body"></div>
+                        </div>
+                        <div class="gate-status out"><span class="sdot"></span>Check-out</div>
+                    </div>
+
+                </div><!-- /gates-row -->
+
+                <!-- BOTTOM STATS -->
+                <div class="iso-stats">
+                    <div class="iso-stat">
+                        <div class="iso-stat-num" style="color:#a78bfa;">1,240</div>
+                        <div class="iso-stat-lbl">Khách đăng ký</div>
+                    </div>
+                    <div class="iso-stat">
+                        <div class="iso-stat-num" style="color:#86efac;">987</div>
+                        <div class="iso-stat-lbl">Đã check-in (79%)</div>
+                    </div>
+                    <div class="iso-stat">
+                        <div class="iso-stat-num" style="color:#60a5fa;">4</div>
+                        <div class="iso-stat-lbl">Cửa hoạt động</div>
+                    </div>
+                    <div class="iso-stat">
+                        <div class="iso-stat-num" style="color:#fcd34d;">
+                            <span style="width:7px;height:7px;border-radius:50%;background:#22c55e;display:inline-block;animation:blink 1s infinite;margin-right:4px;"></span>Live
+                        </div>
+                        <div class="iso-stat-lbl">Real-time update</div>
+                    </div>
+                </div>
+            </div><!-- /iso-scene -->
         </div>
     </div>
 </section>
@@ -593,23 +796,21 @@
     </div>
 </section>
 
-<!-- CTA -->
-<div class="cta-section reveal">
+<!-- CTA / CONTACT -->
+<div class="cta-section reveal" id="contact">
     <div class="cta-box">
         <div class="cta-title">Sẵn sàng nâng tầm<br>sự kiện của bạn?</div>
-        <p class="cta-sub">Bắt đầu ngay hôm nay — triển khai nhanh, dễ dùng, không cần kỹ thuật.</p>
+        <p class="cta-sub">Liên hệ TVTECH để được tư vấn và triển khai hệ thống check-in QR cho sự kiện của bạn.</p>
         <div style="display:flex;gap:14px;justify-content:center;flex-wrap:wrap;position:relative;z-index:1;">
-            <a href="{{ route('login') }}" class="btn-primary-hero"><i class="fas fa-rocket"></i> Vào hệ thống CMS</a>
-            <a href="{{ route('scan') }}" class="btn-outline-hero"><i class="fas fa-camera"></i> Thử quét QR</a>
+            <a href="mailto:contact@tvtech.vn" class="btn-primary-hero"><i class="fas fa-envelope"></i> Liên hệ ngay</a>
+            <a href="tel:+84000000000" class="btn-outline-hero"><i class="fas fa-phone"></i> Gọi tư vấn</a>
         </div>
     </div>
 </div>
 
 <!-- FOOTER -->
 <footer>
-    Quản lý bản quyền bởi <span>TVTECH</span> &copy; {{ date('Y') }} &nbsp;·&nbsp;
-    <a href="{{ route('login') }}" style="color:rgba(255,255,255,0.4);text-decoration:none;">Đăng nhập</a> &nbsp;·&nbsp;
-    <a href="{{ route('scan') }}"  style="color:rgba(255,255,255,0.4);text-decoration:none;">Quét QR</a>
+    Quản lý bản quyền bởi <span>TVTECH</span> &copy; {{ date('Y') }}
 </footer>
 
 <script>
@@ -650,17 +851,28 @@ function drawParticles() {
 }
 drawParticles();
 
-// ── 3D scene mouse tilt ────────────────────────────────
-const scene = document.querySelector('.scene-inner');
-document.querySelector('.scene-3d').addEventListener('mousemove', e => {
+// ── 3D iso scene mouse tilt ───────────────────────────
+const sceneWrap = document.getElementById('sceneWrap');
+document.getElementById('scene3d').addEventListener('mousemove', e => {
     const r = e.currentTarget.getBoundingClientRect();
     const x = (e.clientX - r.left) / r.width  - 0.5;
     const y = (e.clientY - r.top)  / r.height - 0.5;
-    scene.style.transform = `rotateX(${18 - y * 10}deg) rotateY(${-4 + x * 10}deg)`;
+    sceneWrap.style.transform = `rotateX(${22 - y * 12}deg) rotateY(${-6 + x * 12}deg)`;
 });
-document.querySelector('.scene-3d').addEventListener('mouseleave', () => {
-    scene.style.transform = 'rotateX(18deg) rotateY(-4deg)';
+document.getElementById('scene3d').addEventListener('mouseleave', () => {
+    sceneWrap.style.transform = 'rotateX(22deg) rotateY(-6deg)';
 });
+
+// ── Welcome text rotator ───────────────────────────────
+const guests = ['✨ Chào mừng Nguyễn Văn An đến sự kiện!','🎉 Xin chào Trần Thị Bình — Hội nghị 2025!','⭐ Chào mừng Lê Minh Cường — Sảnh VIP!','🌟 Xin chào Phạm Thị Dung — Vé Platinum!'];
+let gi = 0;
+const wt = document.getElementById('welcomeText');
+setInterval(() => {
+    gi = (gi + 1) % guests.length;
+    wt.style.opacity = '0';
+    setTimeout(() => { wt.textContent = guests[gi]; wt.style.opacity = '1'; }, 400);
+}, 3000);
+wt.style.transition = 'opacity 0.4s';
 
 // ── Scroll reveal ──────────────────────────────────────
 const io = new IntersectionObserver(entries => {

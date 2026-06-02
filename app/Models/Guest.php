@@ -9,7 +9,7 @@ use Illuminate\Support\Str;
 class Guest extends Model
 {
     protected $fillable = [
-        'name', 'email', 'media_type', 'media_path', 'qr_code_path',
+        'name', 'email', 'media_type', 'media_path', 'import_media_name', 'qr_code_path',
         'is_active', 'scan_mode', 'max_scan_count', 'scan_count', 'is_locked',
     ];
 

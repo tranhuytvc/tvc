@@ -2,10 +2,13 @@
 
 namespace App\Http\Controllers;
 
+use App\Exports\GuestsTemplateExport;
+use App\Imports\GuestsImport;
 use App\Models\Guest;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use Maatwebsite\Excel\Facades\Excel;
 use SimpleSoftwareIO\QrCode\Facades\QrCode;
 use ZipArchive;
 
@@ -217,6 +220,93 @@ class GuestController extends Controller
         $zip->close();
 
         return response()->download($zipPath, 'qr-codes.zip')->deleteFileAfterSend();
+    }
+
+    // ── IMPORT: download template ──────────────────────────
+    public function importTemplate()
+    {
+        return Excel::download(new GuestsTemplateExport(), 'mau-import-khach.xlsx');
+    }
+
+    // ── IMPORT: Step 1 – show form ────────────────────────
+    public function importForm()
+    {
+        return view('cms.guests.import');
+    }
+
+    // ── IMPORT: Step 1 – process Excel ───────────────────
+    public function importExcel(Request $request)
+    {
+        $request->validate(['file' => 'required|file|mimes:xlsx,xls,csv|max:10240']);
+
+        $import = new GuestsImport();
+        Excel::import($import, $request->file('file'));
+
+        // Generate QR for all newly imported guests that lack qr_code_path
+        $noQr = Guest::whereNull('qr_code_path')->get();
+        foreach ($noQr as $guest) {
+            $this->generateQrCode($guest);
+        }
+
+        $msg = "Đã nhập {$import->imported} khách.";
+        if ($import->skipped) $msg .= " Bỏ qua {$import->skipped} dòng.";
+
+        return redirect()->route('cms.import.media')
+            ->with('success', $msg)
+            ->with('import_errors', $import->errors);
+    }
+
+    // ── IMPORT: Step 2 – media upload form ───────────────
+    public function importMediaForm()
+    {
+        $pending = Guest::whereNotNull('import_media_name')
+                        ->whereNull('media_path')
+                        ->orderBy('name')
+                        ->get();
+        return view('cms.guests.import_media', compact('pending'));
+    }
+
+    // ── IMPORT: Step 2 – process media files ─────────────
+    public function importMedia(Request $request)
+    {
+        $request->validate(['files.*' => 'required|file|max:1048576']); // 1 GB per file
+
+        $files   = $request->file('files', []);
+        $matched = 0;
+        $unmatched = [];
+
+        foreach ($files as $file) {
+            $originalName = $file->getClientOriginalName();
+
+            $guest = Guest::where('import_media_name', $originalName)
+                          ->whereNull('media_path')
+                          ->first();
+
+            if (!$guest) {
+                // Try case-insensitive match
+                $guest = Guest::whereRaw('LOWER(import_media_name) = ?', [strtolower($originalName)])
+                              ->whereNull('media_path')
+                              ->first();
+            }
+
+            if ($guest) {
+                $ext  = $file->getClientOriginalExtension();
+                $path = $file->storeAs('media', 'guest_' . $guest->id . '.' . $ext, 'public');
+                $type = in_array(strtolower($ext), ['mp4','webm','mov','avi']) ? 'video' : 'image';
+                $guest->update(['media_path' => $path, 'media_type' => $type]);
+                $matched++;
+            } else {
+                $unmatched[] = $originalName;
+            }
+        }
+
+        $msg = "Đã ghép {$matched} file media.";
+        if ($unmatched) {
+            $msg .= ' Không tìm thấy khách cho: ' . implode(', ', array_slice($unmatched, 0, 5));
+            if (count($unmatched) > 5) $msg .= ' và ' . (count($unmatched) - 5) . ' file khác.';
+        }
+
+        return back()->with($matched ? 'success' : 'error', $msg);
     }
 
     // Helper: xóa file media + QR của 1 khách

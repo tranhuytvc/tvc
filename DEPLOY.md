@@ -298,8 +298,8 @@ server {
         deny all;
     }
 
-    # Upload file lớn (ảnh/video)
-    client_max_body_size 200M;
+    # Upload file lớn (ảnh/video) — 1GB cho import hàng loạt
+    client_max_body_size 1024M;
 
     # Gzip
     gzip on;

@@ -31,6 +31,11 @@ Route::prefix('cms')->name('cms.')->middleware('auth')->group(function () {
     Route::get('/',                    [GuestController::class, 'index'])->name('index')->middleware('permission:guests.view');
     Route::get('/create',              [GuestController::class, 'create'])->name('create')->middleware('permission:guests.create');
     Route::post('/',                   [GuestController::class, 'store'])->name('store')->middleware('permission:guests.create');
+    Route::get('/import',              [GuestController::class, 'importForm'])->name('import.form')->middleware('permission:guests.create');
+    Route::post('/import/excel',       [GuestController::class, 'importExcel'])->name('import.excel')->middleware('permission:guests.create');
+    Route::get('/import/media',        [GuestController::class, 'importMediaForm'])->name('import.media')->middleware('permission:guests.create');
+    Route::post('/import/media',       [GuestController::class, 'importMedia'])->name('import.media.upload')->middleware('permission:guests.create');
+    Route::get('/import/template',     [GuestController::class, 'importTemplate'])->name('import.template')->middleware('permission:guests.create');
     Route::get('/download-all-qr',     [GuestController::class, 'downloadAllQr'])->name('download-all-qr')->middleware('permission:guests.export');
     Route::delete('/destroy-all',      [GuestController::class, 'destroyAll'])->name('destroy-all')->middleware('permission:guests.delete');
     Route::delete('/destroy-selected', [GuestController::class, 'destroySelected'])->name('destroy-selected')->middleware('permission:guests.delete');
