@@ -46,7 +46,7 @@
     }
 
     .logo-icon { display: flex; align-items: center; }
-    .logo-icon svg { height: 40px; width: auto; }
+    .logo-icon svg { height: 44px; width: auto; }
 
     nav ul { list-style: none; display: flex; gap: 32px; }
     nav ul a { text-decoration: none; color: rgba(255,255,255,.75); font-size: 14px; font-weight: 500; transition: color .2s; }
@@ -405,23 +405,31 @@
 <nav>
   <a href="#" class="logo">
     <div class="logo-icon">
-      <!-- TVTech logo: T(orange-red) + V(yellow-orange) + TECH(green) -->
-      <svg viewBox="0 0 120 100" xmlns="http://www.w3.org/2000/svg" aria-label="TVTech Logo">
-        <defs>
-          <linearGradient id="vGrad" x1="0%" y1="0%" x2="100%" y2="0%">
-            <stop offset="0%" style="stop-color:#F5A623"/>
-            <stop offset="100%" style="stop-color:#F08C00"/>
-          </linearGradient>
-        </defs>
-        <!-- T shape: horizontal bar + vertical left bar -->
-        <rect x="2" y="2" width="52" height="12" rx="2" fill="#E8421A"/>
-        <rect x="2" y="2" width="14" height="54" rx="2" fill="#E8421A"/>
-        <!-- V shape (right side) -->
-        <polygon points="58,2 72,2 90,56 76,56" fill="url(#vGrad)"/>
-        <polygon points="86,2 100,2 90,56 76,56" fill="url(#vGrad)"/>
-        <!-- TECH text -->
-        <text x="4" y="95" font-family="Arial Black, sans-serif" font-weight="900"
-              font-size="22" letter-spacing="3" fill="#2E8B2E">TECH</text>
+      <!--
+        TVTech mark (nav – mark + TECH text)
+        viewBox: 110 wide × 95 tall
+        T : orange-red  #E8421A  – top bar + left stem
+        V : amber       #F5A623  – two angled legs meeting at bottom point
+        TECH : green    #2E8B2E
+      -->
+      <svg viewBox="0 0 110 90" xmlns="http://www.w3.org/2000/svg" aria-label="TVTech">
+        <!-- ── T ── -->
+        <!-- top horizontal bar of T -->
+        <rect x="2"  y="2" width="44" height="11" rx="2" fill="#E8421A"/>
+        <!-- left vertical stem of T -->
+        <rect x="2"  y="2" width="13" height="50" rx="2" fill="#E8421A"/>
+
+        <!-- ── V ── two solid angled legs, tip at bottom -->
+        <!-- left leg of V: top-left → bottom-center -->
+        <path d="M50,2 L66,2 L74,52 L58,52 Z"  fill="#F5A623"/>
+        <!-- right leg of V: top-right → bottom-center -->
+        <path d="M76,2 L92,2 L74,52 L58,52 Z"  fill="#F5A623"/>
+
+        <!-- ── TECH ── -->
+        <text x="2" y="82"
+              font-family="'Arial Black', Arial, sans-serif"
+              font-weight="900" font-size="19" letter-spacing="4"
+              fill="#2E8B2E">TECH</text>
       </svg>
     </div>
   </a>
@@ -436,20 +444,22 @@
 
 <!-- HERO -->
 <section class="hero">
-  <!-- Hero logo -->
-  <svg viewBox="0 0 120 100" xmlns="http://www.w3.org/2000/svg" style="height:80px;width:auto;margin-bottom:24px;filter:drop-shadow(0 4px 24px rgba(232,66,26,.4))" aria-label="TVTech">
-    <defs>
-      <linearGradient id="vGrad2" x1="0%" y1="0%" x2="100%" y2="0%">
-        <stop offset="0%" style="stop-color:#F5A623"/>
-        <stop offset="100%" style="stop-color:#F08C00"/>
-      </linearGradient>
-    </defs>
-    <rect x="2" y="2" width="52" height="12" rx="2" fill="#E8421A"/>
-    <rect x="2" y="2" width="14" height="54" rx="2" fill="#E8421A"/>
-    <polygon points="58,2 72,2 90,56 76,56" fill="url(#vGrad2)"/>
-    <polygon points="86,2 100,2 90,56 76,56" fill="url(#vGrad2)"/>
-    <text x="4" y="95" font-family="Arial Black, sans-serif" font-weight="900"
-          font-size="22" letter-spacing="3" fill="#2E8B2E">TECH</text>
+  <!-- Hero logo (same paths, larger) -->
+  <svg viewBox="0 0 110 90" xmlns="http://www.w3.org/2000/svg"
+       style="height:90px;width:auto;margin-bottom:28px;filter:drop-shadow(0 6px 28px rgba(232,66,26,.5))"
+       aria-label="TVTech">
+    <!-- T -->
+    <rect x="2"  y="2" width="44" height="11" rx="2" fill="#E8421A"/>
+    <rect x="2"  y="2" width="13" height="50" rx="2" fill="#E8421A"/>
+    <!-- V left leg -->
+    <path d="M50,2 L66,2 L74,52 L58,52 Z" fill="#F5A623"/>
+    <!-- V right leg -->
+    <path d="M76,2 L92,2 L74,52 L58,52 Z" fill="#F5A623"/>
+    <!-- TECH -->
+    <text x="2" y="82"
+          font-family="'Arial Black', Arial, sans-serif"
+          font-weight="900" font-size="19" letter-spacing="4"
+          fill="#2E8B2E">TECH</text>
   </svg>
   <div class="badge"><span class="badge-dot"></span>Giải pháp công nghệ số</div>
   <h1>Chuyển đổi số<br/>với <em>TVTech</em></h1>
