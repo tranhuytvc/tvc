@@ -45,16 +45,8 @@
       text-decoration: none;
     }
 
-    .logo-icon {
-      width: 40px; height: 40px;
-      background: linear-gradient(135deg, var(--blue), var(--accent));
-      border-radius: 10px;
-      display: flex; align-items: center; justify-content: center;
-      font-weight: 800; font-size: 17px; color: #fff; letter-spacing: -1px;
-    }
-
-    .logo-text { font-size: 20px; font-weight: 700; color: var(--white); }
-    .logo-text span { color: var(--accent); }
+    .logo-icon { display: flex; align-items: center; }
+    .logo-icon svg { height: 40px; width: auto; }
 
     nav ul { list-style: none; display: flex; gap: 32px; }
     nav ul a { text-decoration: none; color: rgba(255,255,255,.75); font-size: 14px; font-weight: 500; transition: color .2s; }
@@ -412,8 +404,26 @@
 <!-- NAV -->
 <nav>
   <a href="#" class="logo">
-    <div class="logo-icon">TV</div>
-    <span class="logo-text">TV<span>Tech</span></span>
+    <div class="logo-icon">
+      <!-- TVTech logo: T(orange-red) + V(yellow-orange) + TECH(green) -->
+      <svg viewBox="0 0 120 100" xmlns="http://www.w3.org/2000/svg" aria-label="TVTech Logo">
+        <defs>
+          <linearGradient id="vGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+            <stop offset="0%" style="stop-color:#F5A623"/>
+            <stop offset="100%" style="stop-color:#F08C00"/>
+          </linearGradient>
+        </defs>
+        <!-- T shape: horizontal bar + vertical left bar -->
+        <rect x="2" y="2" width="52" height="12" rx="2" fill="#E8421A"/>
+        <rect x="2" y="2" width="14" height="54" rx="2" fill="#E8421A"/>
+        <!-- V shape (right side) -->
+        <polygon points="58,2 72,2 90,56 76,56" fill="url(#vGrad)"/>
+        <polygon points="86,2 100,2 90,56 76,56" fill="url(#vGrad)"/>
+        <!-- TECH text -->
+        <text x="4" y="95" font-family="Arial Black, sans-serif" font-weight="900"
+              font-size="22" letter-spacing="3" fill="#2E8B2E">TECH</text>
+      </svg>
+    </div>
   </a>
   <ul>
     <li><a href="#services">Dịch vụ</a></li>
@@ -426,6 +436,21 @@
 
 <!-- HERO -->
 <section class="hero">
+  <!-- Hero logo -->
+  <svg viewBox="0 0 120 100" xmlns="http://www.w3.org/2000/svg" style="height:80px;width:auto;margin-bottom:24px;filter:drop-shadow(0 4px 24px rgba(232,66,26,.4))" aria-label="TVTech">
+    <defs>
+      <linearGradient id="vGrad2" x1="0%" y1="0%" x2="100%" y2="0%">
+        <stop offset="0%" style="stop-color:#F5A623"/>
+        <stop offset="100%" style="stop-color:#F08C00"/>
+      </linearGradient>
+    </defs>
+    <rect x="2" y="2" width="52" height="12" rx="2" fill="#E8421A"/>
+    <rect x="2" y="2" width="14" height="54" rx="2" fill="#E8421A"/>
+    <polygon points="58,2 72,2 90,56 76,56" fill="url(#vGrad2)"/>
+    <polygon points="86,2 100,2 90,56 76,56" fill="url(#vGrad2)"/>
+    <text x="4" y="95" font-family="Arial Black, sans-serif" font-weight="900"
+          font-size="22" letter-spacing="3" fill="#2E8B2E">TECH</text>
+  </svg>
   <div class="badge"><span class="badge-dot"></span>Giải pháp công nghệ số</div>
   <h1>Chuyển đổi số<br/>với <em>TVTech</em></h1>
   <p class="hero-sub">
@@ -695,7 +720,7 @@
 
     <div class="contact-info">
       <a href="mailto:info@giaiphapcongnghe.xyz">✉️ info@giaiphapcongnghe.xyz</a>
-      <a href="tel:+84000000000">📞 +84 (0) xxx xxx xxx</a>
+      <a href="tel:+84902237923">📞 0902 237 923</a>
       <a href="#">📍 TP. Hồ Chí Minh, Việt Nam</a>
     </div>
   </div>
