@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>TVTECH 3D Human Anatomy Lesson Demo</title>
+  <style>
+    * { box-sizing: border-box; }
+    body { margin: 0; overflow: hidden; font-family: Arial, Helvetica, sans-serif; background: radial-gradient(circle at top, #163b5d 0%, #07111f 45%, #02050a 100%); color: #fff; }
+    #app { position: fixed; inset: 0; display: grid; grid-template-columns: 320px 1fr 360px; }
+    .panel { z-index: 2; padding: 22px; background: rgba(3, 12, 23, 0.68); backdrop-filter: blur(18px); border-right: 1px solid rgba(255,255,255,.12); }
+    .right { border-right: 0; border-left: 1px solid rgba(255,255,255,.12); }
+    h1 { font-size: 24px; line-height: 1.2; margin: 0 0 10px; }
+    h2 { font-size: 16px; text-transform: uppercase; letter-spacing: 1.2px; color: #85e7ff; margin: 24px 0 10px; }
+    p { color: rgba(255,255,255,.78); line-height: 1.55; font-size: 14px; }
+    .brand { color: #63e6ff; font-weight: bold; letter-spacing: 1px; font-size: 13px; margin-bottom: 14px; }
+    button { width: 100%; margin: 7px 0; padding: 13px 14px; border: 1px solid rgba(255,255,255,.18); border-radius: 14px; background: rgba(255,255,255,.08); color: #fff; cursor: pointer; text-align: left; transition: .2s; font-weight: 600; }
+    button:hover, button.active { background: linear-gradient(90deg, rgba(0,190,255,.55), rgba(129,86,255,.45)); border-color: rgba(143,238,255,.8); transform: translateX(3px); }
+    #canvasWrap { position: relative; }
+    canvas { display: block; width: 100%; height: 100%; }
+    .hint { position: absolute; left: 24px; bottom: 22px; z-index: 2; padding: 12px 16px; border-radius: 16px; background: rgba(0,0,0,.36); color: rgba(255,255,255,.78); font-size: 13px; border: 1px solid rgba(255,255,255,.12); }
+    .infoCard { margin-top: 16px; padding: 18px; border-radius: 20px; background: linear-gradient(160deg, rgba(255,255,255,.11), rgba(255,255,255,.04)); border: 1px solid rgba(255,255,255,.14); min-height: 180px; }
+    .infoTitle { font-size: 26px; font-weight: 800; margin-bottom: 6px; }
+    .infoSub { color: #86eeff; font-weight: 700; margin-bottom: 12px; }
+    .pill { display: inline-block; padding: 7px 10px; margin: 5px 4px 5px 0; border-radius: 999px; background: rgba(99,230,255,.12); color: #bdf6ff; border: 1px solid rgba(99,230,255,.22); font-size: 12px; }
+    .progress { height: 8px; background: rgba(255,255,255,.1); border-radius: 20px; overflow: hidden; margin: 14px 0; }
+    .bar { height: 100%; width: 20%; background: linear-gradient(90deg, #00d5ff, #a178ff); transition: width .5s; }
+    @media (max-width: 960px) { #app { grid-template-columns: 1fr; } .panel { position: absolute; width: 280px; max-height: 50vh; overflow:auto; } .right { right:0; } }
+  </style>
+</head>
+<body>
+  <div id="app">
+    <aside class="panel">
+      <div class="brand">TVTECH DIGITAL LEARNING</div>
+      <h1>Bài học 3D: Khám phá cơ thể người</h1>
+      <p>Demo mô phỏng web 3D: xoay cơ thể, tách lớp giải phẫu và tương tác từng cơ quan.</p>
+      <h2>Cấp độ hiển thị</h2>
+      <button class="active" data-stage="0">01. Cơ thể nguyên vẹn</button>
+      <button data-stage="1">02. Tách lớp da</button>
+      <button data-stage="2">03. Hiện cơ - xương - mạch máu</button>
+      <button data-stage="3">04. Ẩn cơ, đi sâu vào nội tạng</button>
+      <button data-stage="4">05. Chỉ xem cơ quan bên trong</button>
+      <h2>Thao tác</h2>
+      <button id="resetView">Reset góc nhìn</button>
+      <button id="autoRotate">Bật / tắt tự xoay</button>
+    </aside>
+
+    <main id="canvasWrap">
+      <div class="hint">Kéo để xoay 360° • Lăn chuột để zoom • Bấm vào tim, phổi, não, gan, dạ dày, cột sống</div>
+    </main>
+
+    <aside class="panel right">
+      <h2>Thông tin bài học</h2>
+      <div class="progress"><div class="bar" id="bar"></div></div>
+      <div class="infoCard">
+        <div class="infoTitle" id="infoTitle">Cơ thể người</div>
+        <div class="infoSub" id="infoSub">Tổng quan giải phẫu</div>
+        <p id="infoText">Hãy chọn một cấp độ hoặc bấm trực tiếp vào bộ phận 3D để xem chức năng, vị trí và vai trò trong cơ thể.</p>
+        <div id="tags"><span class="pill">3D Anatomy</span><span class="pill">Interactive Lesson</span><span class="pill">Web Demo</span></div>
+      </div>
+      <h2>Ý tưởng nâng cấp</h2>
+      <p>Giai đoạn tiếp theo có thể thay mô hình mô phỏng bằng model GLB y khoa thật, thêm giọng đọc AI, quiz, tiếng Việt/Anh và nhúng vào LMS.</p>
+    </aside>
+  </div>
+
+  <script type="module">
+    import * as THREE from 'https://unpkg.com/three@0.160.0/build/three.module.js';
+    import { OrbitControls } from 'https://unpkg.com/three@0.160.0/examples/jsm/controls/OrbitControls.js';
+
+    const wrap = document.getElementById('canvasWrap');
+    const scene = new THREE.Scene();
+    scene.fog = new THREE.Fog(0x06101d, 8, 22);
+
+    const camera = new THREE.PerspectiveCamera(45, wrap.clientWidth / wrap.clientHeight, 0.1, 100);
+    camera.position.set(0, 1.8, 7.2);
+
+    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+    renderer.setSize(wrap.clientWidth, wrap.clientHeight);
+    renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+    wrap.appendChild(renderer.domElement);
+
+    const controls = new OrbitControls(camera, renderer.domElement);
+    controls.enableDamping = true;
+    controls.target.set(0, 1.25, 0);
+    controls.autoRotate = true;
+    controls.autoRotateSpeed = 0.55;
+
+    scene.add(new THREE.HemisphereLight(0xbdefff, 0x1a2030, 2.4));
+    const key = new THREE.DirectionalLight(0xffffff, 2.4); key.position.set(4, 7, 6); scene.add(key);
+    const rim = new THREE.DirectionalLight(0x6ee8ff, 2.1); rim.position.set(-5, 4, -4); scene.add(rim);
+
+    const mats = {
+      skin: new THREE.MeshPhysicalMaterial({ color: 0xf0b39b, roughness: .48, transparent: true, opacity: .96, transmission: .08 }),
+      muscle: new THREE.MeshStandardMaterial({ color: 0xb81930, roughness: .42, transparent: true, opacity: .9 }),
+      bone: new THREE.MeshStandardMaterial({ color: 0xe9e0c7, roughness: .72, transparent: true, opacity: .95 }),
+      vascular: new THREE.MeshStandardMaterial({ color: 0x0bbcff, emissive: 0x0066aa, emissiveIntensity: .35, transparent: true, opacity: .9 }),
+      organHeart: new THREE.MeshStandardMaterial({ color: 0xd3142e, emissive: 0x330004, roughness: .38 }),
+      organLung: new THREE.MeshStandardMaterial({ color: 0xf08da1, transparent: true, opacity: .88 }),
+      organLiver: new THREE.MeshStandardMaterial({ color: 0x7c2435 }),
+      organStomach: new THREE.MeshStandardMaterial({ color: 0xf2b566 }),
+      brain: new THREE.MeshStandardMaterial({ color: 0xf4c0c8 }),
+      highlight: new THREE.MeshStandardMaterial({ color: 0xffff66, emissive: 0xffcc00, emissiveIntensity: .55 })
+    };
+
+    const groups = { skin: new THREE.Group(), muscle: new THREE.Group(), bone: new THREE.Group(), vascular: new THREE.Group(), organs: new THREE.Group() };
+    Object.values(groups).forEach(g => scene.add(g));
+    const clickable = [];
+
+    function mesh(name, group, geometry, material, pos, scale=[1,1,1]) {
+      const m = new THREE.Mesh(geometry, material);
+      m.name = name; m.position.set(...pos); m.scale.set(...scale); group.add(m); clickable.push(m); return m;
+    }
+
+    mesh('Đầu', groups.skin, new THREE.SphereGeometry(.53, 48, 32), mats.skin, [0,3.35,0]);
+    mesh('Thân ngoài', groups.skin, new THREE.CapsuleGeometry(.72, 1.85, 8, 32), mats.skin, [0,2.02,0], [1.05,1,0.72]);
+    mesh('Tay trái ngoài', groups.skin, new THREE.CapsuleGeometry(.16, 1.85, 8, 24), mats.skin, [-.95,2.08,0], [.82,1, .82]).rotation.z = -.22;
+    mesh('Tay phải ngoài', groups.skin, new THREE.CapsuleGeometry(.16, 1.85, 8, 24), mats.skin, [.95,2.08,0], [.82,1, .82]).rotation.z = .22;
+    mesh('Chân trái ngoài', groups.skin, new THREE.CapsuleGeometry(.21, 1.9, 8, 24), mats.skin, [-.33,.62,0], [.8,1,.8]);
+    mesh('Chân phải ngoài', groups.skin, new THREE.CapsuleGeometry(.21, 1.9, 8, 24), mats.skin, [.33,.62,0], [.8,1,.8]);
+
+    mesh('Nhóm cơ ngực', groups.muscle, new THREE.CapsuleGeometry(.55, 1.35, 8, 32), mats.muscle, [0,2.15,.03], [1.0,1,.55]);
+    mesh('Cơ tay trái', groups.muscle, new THREE.CapsuleGeometry(.13, 1.62, 8, 20), mats.muscle, [-.82,2.02,.04], [.8,1,.8]).rotation.z = -.22;
+    mesh('Cơ tay phải', groups.muscle, new THREE.CapsuleGeometry(.13, 1.62, 8, 20), mats.muscle, [.82,2.02,.04], [.8,1,.8]).rotation.z = .22;
+    mesh('Cơ chân trái', groups.muscle, new THREE.CapsuleGeometry(.16, 1.65, 8, 20), mats.muscle, [-.28,.68,.04], [.8,1,.8]);
+    mesh('Cơ chân phải', groups.muscle, new THREE.CapsuleGeometry(.16, 1.65, 8, 20), mats.muscle, [.28,.68,.04], [.8,1,.8]);
+
+    mesh('Hộp sọ', groups.bone, new THREE.SphereGeometry(.37, 32, 24), mats.bone, [0,3.35,0]);
+    mesh('Cột sống', groups.bone, new THREE.CapsuleGeometry(.08, 1.75, 8, 16), mats.bone, [0,2.05,-.05]);
+    mesh('Xương sườn', groups.bone, new THREE.TorusGeometry(.48,.025,12,80), mats.bone, [0,2.35,.02], [1,.68,.25]);
+    mesh('Xương chậu', groups.bone, new THREE.TorusGeometry(.42,.035,12,80), mats.bone, [0,1.25,.01], [1,.52,.25]);
+    mesh('Xương tay trái', groups.bone, new THREE.CapsuleGeometry(.055, 1.62, 8, 12), mats.bone, [-.76,2.02,-.02]).rotation.z = -.22;
+    mesh('Xương tay phải', groups.bone, new THREE.CapsuleGeometry(.055, 1.62, 8, 12), mats.bone, [.76,2.02,-.02]).rotation.z = .22;
+    mesh('Xương chân trái', groups.bone, new THREE.CapsuleGeometry(.065, 1.75, 8, 12), mats.bone, [-.27,.65,-.03]);
+    mesh('Xương chân phải', groups.bone, new THREE.CapsuleGeometry(.065, 1.75, 8, 12), mats.bone, [.27,.65,-.03]);
+
+    for (let i=-2; i<=2; i++) mesh('Mạch máu', groups.vascular, new THREE.CapsuleGeometry(.018, 1.35, 6, 10), mats.vascular, [i*.16,2.05,.42], [.8,1,.8]);
+    mesh('Động mạch chính', groups.vascular, new THREE.CapsuleGeometry(.035, 2.15, 8, 12), mats.vascular, [.12,2.1,.36]);
+
+    mesh('Não', groups.organs, new THREE.SphereGeometry(.28,32,24), mats.brain, [0,3.38,.08], [1.1,.75,.9]);
+    mesh('Tim', groups.organs, new THREE.SphereGeometry(.18,32,20), mats.organHeart, [-.18,2.37,.42], [1,.9,1]);
+    mesh('Phổi trái', groups.organs, new THREE.SphereGeometry(.25,32,20), mats.organLung, [-.32,2.34,.35], [.75,1.25,.5]);
+    mesh('Phổi phải', groups.organs, new THREE.SphereGeometry(.25,32,20), mats.organLung, [.32,2.34,.35], [.75,1.25,.5]);
+    mesh('Gan', groups.organs, new THREE.SphereGeometry(.24,32,20), mats.organLiver, [.22,1.82,.38], [1.45,.55,.65]);
+    mesh('Dạ dày', groups.organs, new THREE.SphereGeometry(.19,32,20), mats.organStomach, [-.22,1.72,.42], [.8,1.15,.6]);
+
+    const infos = {
+      'Tim': ['Hệ tuần hoàn', 'Tim bơm máu đi khắp cơ thể, đưa oxy và chất dinh dưỡng tới các mô.'],
+      'Phổi trái': ['Hệ hô hấp', 'Phổi trao đổi khí, đưa oxy vào máu và thải CO₂ ra ngoài.'],
+      'Phổi phải': ['Hệ hô hấp', 'Phổi trao đổi khí, đưa oxy vào máu và thải CO₂ ra ngoài.'],
+      'Não': ['Hệ thần kinh', 'Não điều khiển hoạt động cơ thể, xử lý cảm giác, tư duy và trí nhớ.'],
+      'Gan': ['Hệ tiêu hoá - chuyển hoá', 'Gan lọc độc tố, chuyển hoá chất dinh dưỡng và hỗ trợ tiêu hoá.'],
+      'Dạ dày': ['Hệ tiêu hoá', 'Dạ dày nghiền và tiêu hoá thức ăn trước khi chuyển xuống ruột non.'],
+      'Cột sống': ['Hệ xương khớp', 'Cột sống nâng đỡ cơ thể và bảo vệ tủy sống.']
+    };
+
+    const raycaster = new THREE.Raycaster(); const mouse = new THREE.Vector2(); let last;
+    function setInfo(title, sub, text){ document.getElementById('infoTitle').textContent=title; document.getElementById('infoSub').textContent=sub; document.getElementById('infoText').textContent=text; }
+    wrap.addEventListener('click', e=>{
+      const r = renderer.domElement.getBoundingClientRect(); mouse.x=((e.clientX-r.left)/r.width)*2-1; mouse.y=-((e.clientY-r.top)/r.height)*2+1;
+      raycaster.setFromCamera(mouse, camera); const hit = raycaster.intersectObjects(clickable, false)[0];
+      if(hit){ if(last && last.userData.oldMat) last.material=last.userData.oldMat; const obj=hit.object; obj.userData.oldMat=obj.material; obj.material=mats.highlight; last=obj; const info=infos[obj.name]||['Cấu trúc giải phẫu', 'Đây là một phần trong mô hình cơ thể người 3D.']; setInfo(obj.name, info[0], info[1]); }
+    });
+
+    function applyStage(stage){
+      const conf = [
+        {skin:.96,muscle:0,bone:0,vascular:0,organs:0,split:0},
+        {skin:.23,muscle:.95,bone:.7,vascular:.45,organs:.55,split:.55},
+        {skin:.08,muscle:.86,bone:1,vascular:1,organs:.8,split:.9},
+        {skin:0,muscle:.18,bone:1,vascular:.95,organs:1,split:.3},
+        {skin:0,muscle:0,bone:.22,vascular:.35,organs:1,split:0}
+      ][stage];
+      const set = (g, opacity)=>{ g.visible = opacity>0.02; g.traverse(o=>{ if(o.material){ o.material.transparent=true; o.material.opacity=opacity; } }); };
+      set(groups.skin, conf.skin); set(groups.muscle, conf.muscle); set(groups.bone, conf.bone); set(groups.vascular, conf.vascular); set(groups.organs, conf.organs);
+      groups.skin.position.x = -conf.split; groups.muscle.position.x = conf.split*.35; groups.vascular.position.z = conf.split*.22; groups.organs.position.z = conf.split*.12;
+      document.getElementById('bar').style.width = `${(stage+1)*20}%`;
+      const texts = [
+        ['Cơ thể người', 'Tổng quan bên ngoài', 'Quan sát hình dạng tổng thể của cơ thể trước khi đi vào các lớp giải phẫu.'],
+        ['Lớp da được tách ra', 'Da - cơ - xương', 'Lớp da trở nên trong suốt và tách nhẹ sang bên để người học nhìn thấy cấu trúc phía dưới.'],
+        ['Cơ, xương và mạch máu', 'Hệ vận động và tuần hoàn', 'Người học thấy cơ bám quanh xương, mạch máu chạy xuyên qua thân thể.'],
+        ['Đi sâu vào nội tạng', 'Xương khớp và cơ quan', 'Cơ mờ dần để làm rõ tim, phổi, gan, dạ dày và các cơ quan quan trọng.'],
+        ['Cơ quan bên trong', 'Bài học chuyên sâu', 'Tập trung vào từng cơ quan để học chức năng và vị trí trong cơ thể.']
+      ][stage];
+      setInfo(...texts);
+    }
+    applyStage(0);
+    document.querySelectorAll('[data-stage]').forEach(btn=>btn.onclick=()=>{ document.querySelectorAll('[data-stage]').forEach(b=>b.classList.remove('active')); btn.classList.add('active'); applyStage(+btn.dataset.stage); });
+    document.getElementById('resetView').onclick=()=>{ camera.position.set(0,1.8,7.2); controls.target.set(0,1.25,0); controls.update(); };
+    document.getElementById('autoRotate').onclick=()=> controls.autoRotate = !controls.autoRotate;
+
+    const grid = new THREE.GridHelper(8, 40, 0x1c6f8d, 0x123044); grid.position.y=-.38; scene.add(grid);
+    function tick(){ controls.update(); renderer.render(scene,camera); requestAnimationFrame(tick); } tick();
+    addEventListener('resize',()=>{ camera.aspect=wrap.clientWidth/wrap.clientHeight; camera.updateProjectionMatrix(); renderer.setSize(wrap.clientWidth, wrap.clientHeight); });
+  </script>
+</body>
+</html>
