@@ -167,7 +167,7 @@
 
         function buildUrl(qrCode) {
             let url = '{{ url("/welcome") }}/' + qrCode;
-            if (stationSlug) url += '?station=' + stationSlug;
+            if (stationSlug) url += '?station=' + encodeURIComponent(stationSlug);
             return url;
         }
 
@@ -178,7 +178,7 @@
             // Extract UUID from full URL or bare UUID
             const uuidMatch = decodedText.match(UUID_RE);
             if (uuidMatch) {
-                setStatus('<i class="fas fa-check-circle"></i> Đã nhận diện!', 'success');
+                setStatus('<i class="fas fa-check-circle"></i> Đã nhận diện! Vui lòng xác nhận ở trang tiếp theo.', 'success');
                 setTimeout(() => { window.location.href = buildUrl(uuidMatch[0]); }, 400);
             } else {
                 isRedirecting = false;
@@ -195,8 +195,7 @@
         function manualCheck() {
             const raw = document.getElementById('manualId').value.trim();
             if (!raw) return;
-            const m = raw.match(UUID_RE);
-            window.location.href = buildUrl(m ? m[0] : raw);
+            handleQrResult(raw);
         }
         document.getElementById('manualId').addEventListener('keypress', e => { if (e.key === 'Enter') manualCheck(); });
     </script>
