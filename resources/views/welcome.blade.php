@@ -1,4 +1,5 @@
 @php
+    $isConfirmation = isset($confirmation);
     $bgType = $settings['bg_type'] ?? 'gradient';
     $hasBgMedia = in_array($bgType, ['image', 'video']) && !empty($settings[$bgType === 'image' ? 'bg_image' : 'bg_video']);
     $bgStyle = '';
@@ -27,7 +28,7 @@
             min-height: 100vh; display: flex; flex-direction: column;
             align-items: center; justify-content: center;
             {!! $hasBgMedia ? '' : $bgStyle !!}
-            color: {{ $fontColor }}; font-family: 'Segoe UI', Tahoma, sans-serif; overflow: hidden;
+            color: {{ $fontColor }}; font-family: 'Segoe UI', Tahoma, sans-serif; overflow-x: hidden; padding: 20px 0;
         }
         .bg-media { position: fixed; inset: 0; z-index: 0; }
         .bg-media img, .bg-media video { width: 100%; height: 100%; object-fit: cover; }
@@ -76,6 +77,7 @@
             color: {{ $fontColor }}; text-decoration: none; border-radius: 50px; font-weight: 500;
             border: 1px solid {{ $accentColor }}66; transition: all 0.3s;
         }
+        .back-btn:disabled { opacity: 0.55; cursor: wait; }
         .back-btn:hover { background: {{ $accentColor }}55; transform: translateY(-2px); }
         .countdown { font-size: 0.8rem; opacity: 0.35; margin-top: 8px; color: {{ $fontColor }}; }
 
@@ -113,7 +115,9 @@
 
         <div class="status-badge {{ $action === 'checkin' ? 'status-checkin' : 'status-checkout' }}">
             <i class="fas {{ $action === 'checkin' ? 'fa-sign-in-alt' : 'fa-sign-out-alt' }}"></i>
-            {{ $action === 'checkin' ? 'CHECK-IN THÀNH CÔNG' : 'CHECK-OUT THÀNH CÔNG' }}
+            {{ $isConfirmation
+                ? ($action === 'checkin' ? 'XÁC NHẬN CHECK-IN' : 'XÁC NHẬN CHECK-OUT')
+                : ($action === 'checkin' ? 'CHECK-IN THÀNH CÔNG' : 'CHECK-OUT THÀNH CÔNG') }}
         </div>
 
         @if($guest->media_path)
@@ -133,12 +137,25 @@
         <p class="welcome-msg">
             {{ $action === 'checkin' ? ($settings['welcome_msg_checkin'] ?? 'Chào mừng bạn đã đến!') : ($settings['welcome_msg_checkout'] ?? 'Hẹn gặp lại!') }}
         </p>
-        <div class="time-display"><i class="fas fa-clock"></i> {{ now()->format('H:i - d/m/Y') }}</div>
+        <div class="time-display"><i class="fas fa-clock"></i> {{ ($receipt->created_at ?? now())->format('H:i - d/m/Y') }}</div>
+
+        @if($isConfirmation)
+        <p class="welcome-msg">Chưa ghi nhận lượt quét. Vui lòng xác nhận thao tác bên dưới.</p>
+        <form method="POST" action="{{ route('welcome.scan', ['qrCode' => $guest->qr_code, 'station' => $station?->scan_slug]) }}" id="scanConfirmation">
+            @csrf
+            <input type="hidden" name="confirmation" value="{{ $confirmation }}">
+            <button type="submit" class="back-btn" id="confirmScan">
+                {{ $action === 'checkin' ? 'Xác nhận vào' : 'Xác nhận ra' }}
+            </button>
+        </form>
+        @endif
 
         <a href="{{ $scanUrl }}" class="back-btn">
             <i class="fas fa-qrcode"></i> Quét mã tiếp theo
         </a>
+        @unless($isConfirmation)
         <div class="countdown">Tự động quay lại sau <span id="timer">{{ $countdown }}</span>s</div>
+        @endunless
     </div>
 
     <script>
@@ -150,12 +167,27 @@
             p.style.cssText = `width:${s}px;height:${s}px;left:${Math.random()*100}%;animation-duration:${Math.random()*10+8}s;animation-delay:${Math.random()*8}s;`;
             pc.appendChild(p);
         }
+        @if($isConfirmation)
+        const form = document.getElementById('scanConfirmation');
+        let submitting = false;
+        form.addEventListener('submit', event => {
+            if (submitting) { event.preventDefault(); return; }
+            submitting = true;
+            document.getElementById('confirmScan').disabled = true;
+        });
+        // Browsers can restore the disabled button from the back/forward cache.
+        window.addEventListener('pageshow', () => {
+            submitting = false;
+            document.getElementById('confirmScan').disabled = false;
+        });
+        @else
         let t = {{ $countdown }};
         const el = document.getElementById('timer');
         const iv = setInterval(() => {
             el.textContent = --t;
             if (t <= 0) { clearInterval(iv); location.href = '{{ $scanUrl }}'; }
         }, 1000);
+        @endif
     </script>
 </body>
 </html>

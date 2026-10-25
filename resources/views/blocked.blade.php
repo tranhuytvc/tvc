@@ -52,12 +52,17 @@
             @if($guest->scan_mode === 'max_scans') &bull; Giới hạn: {{ $guest->max_scan_count }} lần @endif
         </div>
 
+        @isset($retryUrl)
+        <a href="{{ $retryUrl }}" class="btn">Mở lại trang xác nhận</a>
+        @endisset
         <a href="{{ $scanUrl }}" class="btn">
             <i class="fas fa-camera"></i> Quét mã khác
         </a>
     </div>
+    @unless(isset($retryUrl))
     <script>
         setTimeout(() => { location.href = '{{ $scanUrl }}'; }, 6000);
     </script>
+    @endunless
 </body>
 </html>

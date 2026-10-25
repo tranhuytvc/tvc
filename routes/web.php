@@ -11,6 +11,7 @@ use Illuminate\Support\Facades\Route;
 
 // Public: QR welcome & scan/display
 Route::get('/welcome/{qrCode}', [WelcomeController::class, 'show'])->name('welcome');
+Route::post('/welcome/{qrCode}/scan', [WelcomeController::class, 'store'])->name('welcome.scan');
 Route::get('/scan',             [WelcomeController::class, 'scan'])->name('scan');
 Route::get('/display',          [WelcomeController::class, 'display'])->name('display');
 Route::get('/scan/{slug}',      [WelcomeController::class, 'scan'])->name('scan.station');
